@@ -11,7 +11,7 @@ media/
 *.iml
 
 # Virtual environment
-venv/
+.venv/
 .env
 
 # Database credentials
