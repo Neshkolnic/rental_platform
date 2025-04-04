@@ -2,16 +2,48 @@
 <html>
 <head>
     <title>Главная страница</title>
+    <style>
+        .menu {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+        .menu a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #0066cc;
+        }
+    </style>
 </head>
 <body>
     <h1>Добро пожаловать!</h1>
 
     {% if user.is_authenticated %}
         <p>Вы вошли как {{ user.email }}</p>
-        <a href="{% url 'logout' %}">Выйти</a>
+
+        <div class="menu">
+            <!-- Основные ссылки для авторизованных -->
+            <a href="{% url 'create_property' %}">Добавить объявление</a>
+            <a href="{% url 'property_list' %}">Все объявления</a>
+            <a href="{% url 'my_properties' %}">Мои объявления</a>
+            <a href="{% url 'logout' %}">Выйти</a>
+        </div>
+
+        <!-- Блок быстрого добавления (опционально) -->
+        <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <h3>Быстрое добавление:</h3>
+            <form action="{% url 'create_property' %}" method="get">
+                <button type="submit">Создать новое объявление</button>
+            </form>
+        </div>
+
     {% else %}
-        <a href="{% url 'login' %}">Войти</a> |
-        <a href="{% url 'register' %}">Зарегистрироваться</a>
+        <div class="menu">
+            <a href="{% url 'login' %}">Войти</a>
+            <a href="{% url 'register' %}">Зарегистрироваться</a>
+        </div>
+
+        <p>Чтобы добавить объявление, пожалуйста, авторизуйтесь.</p>
     {% endif %}
 </body>
 </html>

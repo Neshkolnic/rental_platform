@@ -2,13 +2,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView  # Добавьте этот импорт
 from django.contrib.auth import views as auth_views
+from booking.views import create_property, property_list
+from booking import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
+    path('properties/create/', create_property, name='create_property'),
+    path('properties/', property_list, name='property_list'),
     # Главная страница
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
-
+    path('my-properties/', views.my_properties, name='my_properties'),
     # URL приложения booking
     path('', include('booking.urls')),
 
