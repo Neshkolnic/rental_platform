@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>{{ property.title }}</h1>
+<p>{{ property.address }}</p>
+
+<!-- Карта через iframe -->
+<div class="map-container">
+    <iframe 
+        src="{{ property.get_yandex_map_url }}"
+        width="100%" 
+        height="400" 
+        frameborder="0"
+        allowfullscreen
+    ></iframe>
+</div>
+{% endblock %}

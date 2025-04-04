@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from geopy.geocoders import Nominatim
 
 
 class User(AbstractUser):
@@ -42,6 +43,32 @@ class Property(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.address and (not self.latitude or not self.longitude):
+            self.geocode_address()
+        super().save(*args, **kwargs)
+
+    def geocode_address(self):
+        """Автозаполнение координат через Яндекс API"""
+        import requests
+        from django.conf import settings
+
+        try:
+            response = requests.get(
+                'https://geocode-maps.yandex.ru/1.x/',
+                params={
+                    'geocode': self.address,
+                    'apikey': settings.YANDEX_MAPS_API_KEY,
+                    'format': 'json'
+                }
+            )
+            data = response.json()
+            pos = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
+            self.longitude, self.latitude = map(float, pos.split())
+        except:
+            # Если геокодирование не сработало - оставляем NULL
+            pass
 
 class PropertyPhoto(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE)

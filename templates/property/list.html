@@ -1,0 +1,7 @@
+{% for property in properties %}
+<div class="property-card">
+    <h3>{{ property.title }}</h3>
+    <p>{{ property.description|truncatewords:30 }}</p>
+    <p>Цена за ночь: ${{ property.price_per_night }}</p>
+</div>
+{% endfor %}

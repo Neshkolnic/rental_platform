@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мои объявления</title>
+    <style>
+        .property {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Мои объявления</h1>
+
+    <a href="{% url 'create_property' %}">Добавить новое объявление</a>
+
+    {% if properties %}
+        {% for property in properties %}
+        <div class="property">
+            <h2>{{ property.title }}</h2>
+            <p><strong>Тип:</strong> {{ property.get_property_type_display }}</p>
+            <p><strong>Цена за ночь:</strong> ${{ property.price_per_night }}</p>
+            <p><strong>Статус:</strong> {{ property.is_active|yesno:"Активно,Неактивно" }}</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>У вас пока нет объявлений.</p>
+    {% endif %}
+
+    <a href="/">На главную</a>
+</body>
+</html>

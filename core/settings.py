@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
 
+
+
     # Third-party apps
     'allauth',
     'allauth.account',
@@ -167,3 +169,10 @@ else:
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+
+# Настройки Geopy
+GEOCODING_SERVICE = 'nominatim'
+GEOCODING_TIMEOUT = 10
+
+# Добавьте ваш ключ API Яндекс.Карт
+YANDEX_MAPS_API_KEY = '86725852-6abe-4f51-bde5-05c185b45eb3'
