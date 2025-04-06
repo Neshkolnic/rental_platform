@@ -1,45 +1,76 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from geopy.geocoders import Nominatim
+from django.core.exceptions import ValidationError
+from django.conf import settings
+import requests
+from datetime import date
 
 
 class User(AbstractUser):
-    # Все ваши текущие поля остаются
+    class Role(models.TextChoices):
+        USER = 'user', 'User'
+        HOST = 'host', 'Host'
+        ADMIN = 'admin', 'Admin'
+
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     avatar_url = models.CharField(max_length=512, blank=True, null=True)
-    role = models.CharField(max_length=50, default='user')
-    password = models.CharField(max_length=128, blank=True)  # Временное поле
+    role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
+    password = models.CharField(max_length=128, blank=True)
     is_verified = models.BooleanField(default=False)
-    # created_at и updated_at уже есть в AbstractUser
 
-    # Указываем, что email будет использоваться как идентификатор для входа
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']  # Обязательные поля при создании пользователя
+    REQUIRED_FIELDS = ['username']
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}"
 
     def __str__(self):
-        return self.username or self.email
+        return self.full_name or self.email
+
 
 class SocialAuth(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    provider = models.CharField(max_length=50)
+    class Provider(models.TextChoices):
+        GOOGLE = 'google', 'Google'
+        FACEBOOK = 'facebook', 'Facebook'
+        APPLE = 'apple', 'Apple'
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='social_auth')
+    provider = models.CharField(max_length=50, choices=Provider.choices)
     provider_id = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('provider', 'provider_id')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.provider}"
+
 
 class Property(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    class PropertyType(models.TextChoices):
+        APARTMENT = 'apartment', 'Apartment'
+        HOUSE = 'house', 'House'
+        VILLA = 'villa', 'Villa'
+        CABIN = 'cabin', 'Cabin'
+        COTTAGE = 'cottage', 'Cottage'
+        LOFT = 'loft', 'Loft'
+
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='properties')
     title = models.CharField(max_length=255)
     description = models.TextField()
-    property_type = models.CharField(max_length=50)
-    room_count = models.IntegerField()
-    guest_capacity = models.IntegerField()
+    property_type = models.CharField(max_length=50, choices=PropertyType.choices)
+    room_count = models.PositiveIntegerField()
+    guest_capacity = models.PositiveIntegerField()
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2)
     address = models.CharField(max_length=255)
     city = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -50,10 +81,6 @@ class Property(models.Model):
         super().save(*args, **kwargs)
 
     def geocode_address(self):
-        """Автозаполнение координат через Яндекс API"""
-        import requests
-        from django.conf import settings
-
         try:
             response = requests.get(
                 'https://geocode-maps.yandex.ru/1.x/',
@@ -66,73 +93,208 @@ class Property(models.Model):
             data = response.json()
             pos = data['response']['GeoObjectCollection']['featureMember'][0]['GeoObject']['Point']['pos']
             self.longitude, self.latitude = map(float, pos.split())
-        except:
-            # Если геокодирование не сработало - оставляем NULL
-            pass
+        except Exception as e:
+            print(f"Geocoding failed: {e}")
+
+    @property
+    def primary_photo(self):
+        return self.photos.filter(is_primary=True).first() or self.photos.first()
+
+    @property
+    def available_dates(self):
+        return self.availability.filter(is_available=True, date__gte=date.today())
+
+    def __str__(self):
+        return f"{self.title} in {self.city}"
+
 
 class PropertyPhoto(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
-    url = models.CharField(max_length=512)
+    MAX_PHOTOS = 17
+
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='photos')
+    image = models.ImageField(upload_to='property_photos/%Y/%m/%d/')
     is_primary = models.BooleanField(default=False)
-    order_index = models.IntegerField()
+    order_index = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order_index']
+
 
 class Amenity(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, unique=True)
+    icon = models.CharField(max_length=50, blank=True, null=True)
+
+    def __str__(self):
+        return self.name
+
 
 class PropertyAmenity(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
-    amenity = models.ForeignKey(Amenity, on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='property_amenities')
+    amenity = models.ForeignKey(Amenity, on_delete=models.CASCADE, related_name='property_amenities')
+
+    class Meta:
+        unique_together = ('property', 'amenity')
+        verbose_name_plural = 'Property Amenities'
+
+    def __str__(self):
+        return f"{self.property.title} - {self.amenity.name}"
+
 
 class Booking(models.Model):
-    tenant = models.ForeignKey(User, on_delete=models.CASCADE)
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        CONFIRMED = 'confirmed', 'Confirmed'
+        CANCELLED = 'cancelled', 'Cancelled'
+        COMPLETED = 'completed', 'Completed'
+
+    tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='bookings')
     check_in_date = models.DateField()
     check_out_date = models.DateField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        if self.check_in_date >= self.check_out_date:
+            raise ValidationError('Check-out date must be after check-in date')
+
+        overlapping_bookings = Booking.objects.filter(
+            property=self.property,
+            check_in_date__lt=self.check_out_date,
+            check_out_date__gt=self.check_in_date,
+            status__in=[Booking.Status.CONFIRMED, Booking.Status.PENDING]
+        ).exclude(pk=self.pk)
+
+        if overlapping_bookings.exists():
+            raise ValidationError('This property is already booked for selected dates')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Booking #{self.id} for {self.property.title}"
+
+
 class Payment(models.Model):
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        COMPLETED = 'completed', 'Completed'
+        FAILED = 'failed', 'Failed'
+        REFUNDED = 'refunded', 'Refunded'
+
+    class Method(models.TextChoices):
+        CARD = 'card', 'Credit Card'
+        PAYPAL = 'paypal', 'PayPal'
+        BANK_TRANSFER = 'bank_transfer', 'Bank Transfer'
+
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(max_length=50)
+    payment_method = models.CharField(max_length=50, choices=Method.choices)
     transaction_id = models.CharField(max_length=255)
-    status = models.CharField(max_length=20)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"Payment #{self.id} for Booking #{self.booking.id}"
+
+
 class Review(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
-    rating = models.SmallIntegerField()
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='reviews')
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='review')
+    rating = models.PositiveSmallIntegerField()
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('booking', 'author')
+
+    def clean(self):
+        if not 1 <= self.rating <= 5:
+            raise ValidationError('Rating must be between 1 and 5')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Review by {self.author.full_name} for {self.property.title}"
+
 
 class UserRating(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_ratings')
     to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_ratings')
-    rating = models.SmallIntegerField()
-    comment = models.TextField()
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ('from_user', 'to_user')
+
+    def clean(self):
+        if not 1 <= self.rating <= 5:
+            raise ValidationError('Rating must be between 1 and 5')
+
+        if self.from_user == self.to_user:
+            raise ValidationError('You cannot rate yourself')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Rating from {self.from_user.full_name} to {self.to_user.full_name}"
+
+
 class AvailabilityCalendar(models.Model):
-    property = models.ForeignKey(Property, on_delete=models.CASCADE)
+    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='availability')
     date = models.DateField()
-    is_available = models.BooleanField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    is_available = models.BooleanField(default=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('property', 'date')
+        verbose_name_plural = 'Availability Calendar'
+
+    def __str__(self):
+        return f"{self.property.title} on {self.date}: {'Available' if self.is_available else 'Booked'}"
+
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    type = models.CharField(max_length=50)
+    class Type(models.TextChoices):
+        BOOKING_REQUEST = 'booking_request', 'Booking Request'
+        BOOKING_CONFIRMED = 'booking_confirmed', 'Booking Confirmed'
+        BOOKING_CANCELLED = 'booking_cancelled', 'Booking Cancelled'
+        PAYMENT_RECEIVED = 'payment_received', 'Payment Received'
+        REVIEW_RECEIVED = 'review_received', 'Review Received'
+        MESSAGE_RECEIVED = 'message_received', 'Message Received'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    type = models.CharField(max_length=50, choices=Type.choices)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_type_display()} notification for {self.user.full_name}"
+
+
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='messages')
     text = models.TextField()
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"Message from {self.sender.full_name} to {self.receiver.full_name}"

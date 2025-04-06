@@ -176,3 +176,11 @@ GEOCODING_TIMEOUT = 10
 
 # Добавьте ваш ключ API Яндекс.Карт
 YANDEX_MAPS_API_KEY = '86725852-6abe-4f51-bde5-05c185b45eb3'
+
+# Настройки для медиа-файлов
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Максимальный размер загружаемых файлов (20MB)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20971520
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20971520
