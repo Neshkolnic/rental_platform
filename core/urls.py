@@ -4,6 +4,8 @@ from django.views.generic import TemplateView  # Добавьте этот им�
 from django.contrib.auth import views as auth_views
 from booking.views import create_property, property_list
 from booking import views
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -14,7 +16,7 @@ urlpatterns = [
     path('my-properties/', views.my_properties, name='my_properties'),
     # URL приложения booking
     path('', include('booking.urls')),
-
+     path('properties/create/', create_property, name='create_property'),
     # URL allauth (социальная авторизация)
     path('accounts/', include('allauth.urls')),
     path('password-reset/',
@@ -37,4 +39,5 @@ urlpatterns = [
              template_name='registration/password_reset_complete.html'
          ),
          name='password_reset_complete'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
