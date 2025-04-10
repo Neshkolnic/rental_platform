@@ -1,27 +1,27 @@
+import os
+
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.core.files.storage import default_storage
+
 from .models import User, Property, PropertyPhoto
+from multiupload.fields import MultiFileField
 
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label='Email')
 
 class MultipleFileInput(forms.ClearableFileInput):
-    allow_multiple_selected = True
-
-    def __init__(self, attrs=None):
-        attrs = attrs or {}
-        attrs['multiple'] = 'multiple'
-        super().__init__(attrs)
+    allow_multiple_selected = True  # Ключевая строка для множественного выбора
 
     def value_from_datadict(self, data, files, name):
         return files.getlist(name)
 
+
 class PropertyForm(forms.ModelForm):
-    photos = forms.FileField(
-        widget=MultipleFileInput(attrs={
-            'class': 'photo-input',
-            'accept': 'image/*'
-        }),
+    photos = MultiFileField(
+        min_num=0,
+        max_num=17,
+        max_file_size=1024 * 1024 * 10,  # 10MB
         label='Фотографии объекта',
         required=False,
         help_text='Первая загруженная фотография будет основной. Максимум 17 фото.'
@@ -29,25 +29,44 @@ class PropertyForm(forms.ModelForm):
 
     class Meta:
         model = Property
-        exclude = ['owner', 'latitude', 'longitude']  # Исключаем ненужные поля
+        exclude = ['owner', 'latitude', 'longitude']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Улучшенная обработка поля is_active
         self.fields['is_active'].initial = True
         self.fields['is_active'].widget = forms.HiddenInput()
 
-    def clean_photos(self):
-        photos = self.files.getlist('photos') if 'photos' in self.files else []
-        if len(photos) > PropertyPhoto.MAX_PHOTOS:
-            raise forms.ValidationError(f'Максимум {PropertyPhoto.MAX_PHOTOS} фотографий')
+    def save(self, commit=True, owner=None):
+        property_obj = super().save(commit=False)
+        if owner:
+            property_obj.owner = owner
 
-        for photo in photos:
-            if not photo.content_type.startswith('image/'):
-                raise forms.ValidationError(f'{photo.name} - не изображение')
-            if photo.size > 10 * 1024 * 1024:
-                raise forms.ValidationError(f'{photo.name} слишком большой (максимум 10MB)')
-        return photos
+        if commit:
+            property_obj.save()
+            self.save_photos(property_obj)
+
+        return property_obj
+
+    def save_photos(self, property_obj):
+        photos = self.cleaned_data.get('photos', [])
+        print(f"Фотографий для сохранения: {len(photos)}")  # Отладочный вывод
+
+        for i, photo in enumerate(photos):
+            # Создаем уникальное имя файла
+            ext = os.path.splitext(photo.name)[1]
+            filename = f"property_{property_obj.id}_photo_{i}{ext}"
+
+            # Сохраняем файл в хранилище
+            path = default_storage.save(f'property_photos/{filename}', photo)
+
+            # Создаем запись в базе данных
+            PropertyPhoto.objects.create(
+                property=property_obj,
+                image=path,
+                is_primary=(i == 0),
+                order_index=i
+            )
+            print(f"Сохранено фото {i + 1}: {path}")  # Отладочный вывод
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)

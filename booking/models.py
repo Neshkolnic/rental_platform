@@ -112,7 +112,7 @@ class PropertyPhoto(models.Model):
     MAX_PHOTOS = 17
 
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='photos')
-    image = models.ImageField(upload_to='property_photos/%Y/%m/%d/')
+    image = models.ImageField(upload_to='property_photos/%Y/%m/%d/', null=True, blank=True)
     is_primary = models.BooleanField(default=False)
     order_index = models.IntegerField(default=0)
 

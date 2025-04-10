@@ -7,6 +7,8 @@ from geopy.geocoders import Nominatim
 from django.views.generic import CreateView
 from django.urls import reverse_lazy
 from .models import Property, PropertyPhoto
+from django.contrib import messages
+
 import os
 from django.conf import settings
 
@@ -55,27 +57,21 @@ def logout_view(request):
 @login_required
 def create_property(request):
     if request.method == 'POST':
+        print(f"Получено файлов в request.FILES: {len(request.FILES.getlist('photos'))}")
         form = PropertyForm(request.POST, request.FILES)
+
         if form.is_valid():
-            property = form.save(commit=False)
-            property.owner = request.user
-            property.save()
-
-            # Проверяем, что файлы переданы
-            if 'photos' in request.FILES:
-                for i, photo in enumerate(request.FILES.getlist('photos')):
-                    PropertyPhoto.objects.create(
-                        property=property,
-                        image=photo,
-                        is_primary=(i == 0),
-                        order_index=i
-                    )
-            else:
-                # Если файлы не переданы, выводим ошибку
-                form.add_error('photos', 'Нет загруженных файлов.')
-                return render(request, 'property/create.html', {'form': form})
-
-            return redirect('property_list')
+            print(f"Валидные данные, фотографий в cleaned_data: {len(form.cleaned_data.get('photos', []))}")
+            try:
+                property_obj = form.save(owner=request.user)
+                messages.success(request, 'Объект и фотографии успешно сохранены!')
+                return redirect('property_detail', pk=property_obj.pk)
+            except Exception as e:
+                messages.error(request, f'Ошибка при сохранении: {str(e)}')
+                print(f"Ошибка сохранения: {str(e)}")
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+            print("Ошибки формы:", form.errors)
     else:
         form = PropertyForm()
 
