@@ -27,6 +27,9 @@ class PropertyForm(forms.ModelForm):
         help_text='Первая загруженная фотография будет основной. Максимум 17 фото.'
     )
 
+    latitude = forms.DecimalField(required=False, widget=forms.HiddenInput())
+    longitude = forms.DecimalField(required=False, widget=forms.HiddenInput())
+
     class Meta:
         model = Property
         exclude = ['owner', 'latitude', 'longitude']

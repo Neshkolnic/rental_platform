@@ -81,12 +81,13 @@ class Property(models.Model):
         super().save(*args, **kwargs)
 
     def geocode_address(self):
+        # Геокодирование для получения координат
         try:
             response = requests.get(
                 'https://geocode-maps.yandex.ru/1.x/',
                 params={
                     'geocode': self.address,
-                    'apikey': settings.YANDEX_MAPS_API_KEY,
+                    'apikey': settings.YANDEX_MAPS_API_KEY,  # Ваш ключ API
                     'format': 'json'
                 }
             )

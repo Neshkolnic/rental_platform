@@ -80,8 +80,16 @@ def create_property(request):
 
 def property_list(request):
     properties = Property.objects.filter(is_active=True)
+    for property in properties:
+        # Получаем первую фотографию
+        property.first_photo = property.photos.first()
+        property.short_description = property.description[:100]
     return render(request, 'property/list.html', {'properties': properties})
 
+from django.shortcuts import get_object_or_404
+def property_detail(request, pk):
+    property = get_object_or_404(Property, pk=pk)
+    return render(request, 'property/detail.html', {'property': property})
 
 @login_required
 def my_properties(request):

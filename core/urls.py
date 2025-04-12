@@ -11,6 +11,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('properties/create/', create_property, name='create_property'),
     path('properties/', property_list, name='property_list'),
+    path('properties/<int:pk>/', views.property_detail, name='property_detail'),
     # Главная страница
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('my-properties/', views.my_properties, name='my_properties'),
