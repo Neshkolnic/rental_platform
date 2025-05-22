@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Календарь доступности: {{ property.title }}</title>
+</head>
+<body>
+    <h1>Календарь доступности для {{ property.title }}</h1>
+
+    <table>
+        <tr>
+            <th>Дата</th>
+            <th>Доступность</th>
+            <th>Цена</th>
+            <th>Редактировать</th>
+        </tr>
+        {% for availability in availability_calendar %}
+            <tr>
+                <td>{{ availability.date }}</td>
+                <td>{% if availability.is_available %} Доступно {% else %} Недоступно {% endif %}</td>
+                <td>{{ availability.price }}</td>
+                <td><a href="{% url 'update_availability' property_id=property.id date_str=availability.date %}">Редактировать</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

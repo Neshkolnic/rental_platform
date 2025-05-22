@@ -302,3 +302,4 @@ class Message(models.Model):
         return f"Message from {self.sender} to {self.receiver}"
 
 
+

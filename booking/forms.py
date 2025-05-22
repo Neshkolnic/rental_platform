@@ -3,6 +3,7 @@ import os
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core.files.storage import default_storage
+from .models import User, Property, PropertyPhoto, AvailabilityCalendar
 
 from .models import User, Property, PropertyPhoto
 from multiupload.fields import MultiFileField
@@ -78,3 +79,9 @@ class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = ('username', 'email', 'phone', 'password1', 'password2')
+
+from .models import AvailabilityCalendar
+class AvailabilityCalendarForm(forms.ModelForm):
+    class Meta:
+        model = AvailabilityCalendar
+        fields = ['date', 'is_available', 'price']

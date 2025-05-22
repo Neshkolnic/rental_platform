@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактировать календарь</title>
+</head>
+<body>
+    <h1>Редактировать календарь</h1>
+
+    {% for property in user_properties %}
+        <h2>{{ property.title }}</h2>
+        <a href="{% url 'calendar_view' property_id=property.id %}">Посмотреть календарь</a>
+        <br>
+    {% endfor %}
+</body>
+</html>

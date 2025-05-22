@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактировать объявление</title>
+</head>
+<body>
+    <h1>Редактировать объявление: {{ property.title }}</h1>
+
+    <form method="POST">
+        {% csrf_token %}
+        <label for="title">Заголовок:</label>
+        <input type="text" id="title" name="title" value="{{ property.title }}">
+        <br>
+        <label for="description">Описание:</label>
+        <textarea id="description" name="description">{{ property.description }}</textarea>
+        <br>
+        <label for="price_per_night">Цена за ночь:</label>
+        <input type="text" id="price_per_night" name="price_per_night" value="{{ property.price_per_night }}">
+        <br>
+        <button type="submit">Сохранить изменения</button>
+    </form>
+
+    <a href="{% url 'calendar_edit' %}">Перейти к редактированию календаря</a>
+</body>
+</html>

@@ -193,3 +193,70 @@ def booking_confirm_view(request, property_id):
         'total_price': total_price,
     })
 
+from django.shortcuts import render, get_object_or_404, redirect
+from .models import Property, AvailabilityCalendar
+from .forms import AvailabilityCalendarForm
+from django.contrib.auth.decorators import login_required
+from datetime import datetime
+from django.shortcuts import render, get_object_or_404, redirect
+from .forms import PropertyForm
+from .models import Property
+from django.contrib.auth.decorators import login_required
+
+from .forms import AvailabilityCalendarForm
+
+
+@login_required
+def property_edit(request, pk):
+    property = get_object_or_404(Property, pk=pk)
+
+    if request.method == 'POST':
+        # Обработка формы редактирования объявления
+        title = request.POST.get('title')
+        description = request.POST.get('description')
+        price_per_night = request.POST.get('price_per_night')
+
+        property.title = title
+        property.description = description
+        property.price_per_night = price_per_night
+        property.save()
+
+        return redirect('property_edit', pk=property.pk)
+
+    return render(request, 'property/property_edit.html', {'property': property})
+
+
+@login_required
+def calendar_edit(request):
+    # Получаем все объявления текущего пользователя
+    user_properties = Property.objects.filter(owner=request.user)
+
+    return render(request, 'property/calendar_edit.html', {'user_properties': user_properties})
+
+
+@login_required
+def update_availability(request, property_id, date_str):
+    # Обновляем доступность и цену для конкретного дня
+    date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    availability = AvailabilityCalendar.objects.get(property_id=property_id, date=date)
+
+    if request.method == 'POST':
+        form = AvailabilityCalendarForm(request.POST, instance=availability)
+        if form.is_valid():
+            form.save()
+            return redirect('calendar_edit')
+        else:
+            return render(request, 'property/calendar_edit.html', {'form': form, 'error': 'Form is not valid.'})
+
+    return render(request, 'property/update_availability.html', {'availability': availability})
+
+# booking/views.py
+@login_required
+def calendar_view(request, property_id):
+    property = get_object_or_404(Property, id=property_id)
+    availability_calendar = AvailabilityCalendar.objects.filter(property=property)
+
+    return render(request, 'property/calendar_view.html', {
+        'property': property,
+        'availability_calendar': availability_calendar
+    })
