@@ -16,6 +16,38 @@
     <div id="map" style="width: 100%; height: 400px; margin-top: 30px;"></div>
 </div>
 
+<!-- Календарь бронирования -->
+<div style="margin-top: 30px;">
+    <h3>Выберите даты для бронирования:</h3>
+
+    <input type="text" id="date-range" placeholder="Выберите даты" />
+
+    <form action="{% url 'booking_confirm' property.id %}" method="get">
+        <input type="hidden" name="check_in" id="check_in">
+        <input type="hidden" name="check_out" id="check_out">
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Перейти к бронированию</button>
+    </form>
+</div>
+
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+flatpickr("#date-range", {
+    mode: "range",
+    minDate: "today",
+    dateFormat: "Y-m-d",
+    onChange: function(selectedDates) {
+        if (selectedDates.length === 2) {
+            document.getElementById("check_in").value = selectedDates[0].toISOString().split('T')[0];
+            document.getElementById("check_out").value = selectedDates[1].toISOString().split('T')[0];
+        }
+    }
+});
+</script>
+
+
 <!-- Подключение Яндекс.Карт -->
 <script src="https://api-maps.yandex.ru/2.1/?apikey=your-api-key&lang=ru_RU"></script>
 <script>

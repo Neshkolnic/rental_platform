@@ -286,6 +286,7 @@ class Notification(models.Model):
         return f"{self.get_type_display()} notification for {self.user.full_name}"
 
 
+
 class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
@@ -298,4 +299,6 @@ class Message(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return f"Message from {self.sender.full_name} to {self.receiver.full_name}"
+        return f"Message from {self.sender} to {self.receiver}"
+
+
