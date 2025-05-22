@@ -1,0 +1,9 @@
+<h2>Подтверждение бронирования</h2>
+<p>Объект: {{ property.title }}</p>
+<p>С {{ check_in }} по {{ check_out }}</p>
+<p>Сумма: {{ total_price }} руб.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Подтвердить бронирование</button>
+</form>
