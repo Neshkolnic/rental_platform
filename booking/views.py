@@ -8,6 +8,8 @@ from django.views.generic import CreateView
 from django.urls import reverse_lazy
 from .models import Property, PropertyPhoto
 from django.contrib import messages
+from .models import AvailabilityCalendar
+from datetime import date
 
 import os
 from django.conf import settings
@@ -89,7 +91,11 @@ def property_list(request):
 from django.shortcuts import get_object_or_404
 def property_detail(request, pk):
     property = get_object_or_404(Property, pk=pk)
-    return render(request, 'property/detail.html', {'property': property})
+    availability = AvailabilityCalendar.objects.filter(property=property)
+    return render(request, 'property/detail.html', {
+        'property': property,
+        'availability': availability
+    })
 
 @login_required
 def my_properties(request):
@@ -115,4 +121,64 @@ class PropertyCreateView(CreateView):
             )
         return response
 
+from django.contrib.auth.decorators import login_required
+from .models import Booking
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from datetime import date
+from .models import Property, Booking
+
+
+@login_required
+def booking_confirm_view(request, property_id):
+    # Получаем объект недвижимости
+    property = get_object_or_404(Property, pk=property_id)
+
+    # Получаем параметры check_in и check_out из GET-запроса
+    check_in = request.GET.get('check_in')
+    check_out = request.GET.get('check_out')
+
+    # Проверяем, что обе даты переданы
+    if not check_in or not check_out:
+        return render(request, 'error.html', {'message': 'Пожалуйста, выберите обе даты.'})
+
+    # Преобразуем строки в объекты даты
+    try:
+        check_in_date = date.fromisoformat(check_in)
+        check_out_date = date.fromisoformat(check_out)
+    except ValueError:
+        return render(request, 'error.html', {'message': 'Некорректный формат дат.'})
+
+    # Проверка, что дата выезда не раньше даты заезда
+    if check_out_date <= check_in_date:
+        return render(request, 'error.html', {'message': 'Дата выезда должна быть позже даты заезда.'})
+
+    # Вычисляем количество дней
+    total_days = (check_out_date - check_in_date).days
+    total_price = total_days * property.price_per_night
+
+    if total_days <= 0:
+        return render(request, 'error.html', {'message': 'Продолжительность бронирования должна быть хотя бы 1 день.'})
+
+    # Если POST-запрос, создаем бронирование
+    if request.method == 'POST':
+        booking = Booking.objects.create(
+            tenant=request.user,
+            property=property,
+            check_in_date=check_in_date,
+            check_out_date=check_out_date,
+            total_price=total_price,
+            status=Booking.Status.PENDING
+        )
+        # Перенаправляем в чат
+        return redirect('chat_room', booking_id=booking.id)
+
+    # Возвращаем страницу подтверждения бронирования с данными
+    return render(request, 'booking/confirm.html', {
+        'property': property,
+        'check_in': check_in,
+        'check_out': check_out,
+        'total_price': total_price,
+    })
 

@@ -10,9 +10,11 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('properties/create/', create_property, name='create_property'),
+    path('booking/<int:property_id>/confirm/', views.booking_confirm_view, name='booking_confirm'),
     path('properties/', property_list, name='property_list'),
     path('properties/<int:pk>/', views.property_detail, name='property_detail'),
     # Главная страница
+    path('chat/', include('chat.urls')),
     path('', TemplateView.as_view(template_name='home.html'), name='home'),
     path('my-properties/', views.my_properties, name='my_properties'),
     # URL приложения booking
