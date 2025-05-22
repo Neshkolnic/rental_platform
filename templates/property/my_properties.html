@@ -23,6 +23,11 @@
             <p><strong>Тип:</strong> {{ property.get_property_type_display }}</p>
             <p><strong>Цена за ночь:</strong> ${{ property.price_per_night }}</p>
             <p><strong>Статус:</strong> {{ property.is_active|yesno:"Активно,Неактивно" }}</p>
+
+            <!-- Кнопка редактирования объекта -->
+            <a href="{% url 'property_edit' property.pk %}">
+                <button>Редактировать объект</button>
+            </a>
         </div>
         {% endfor %}
     {% else %}

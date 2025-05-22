@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать объявление</title>
+</head>
+<body>
+    <h1>Редактировать объявление</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Сохранить изменения</button>
+    </form>
+
+    <a href="{% url 'my_properties' %}">Назад к моим объявлениям</a>
+</body>
+</html>
