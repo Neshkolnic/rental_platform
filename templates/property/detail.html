@@ -28,6 +28,14 @@
         <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Перейти к бронированию</button>
     </form>
 </div>
+<style>
+  .flatpickr-day.booked {
+    background-color: #e57373 !important;
+    color: white !important;
+    text-decoration: line-through;
+    cursor: not-allowed;
+  }
+</style>
 
 <!-- Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -36,8 +44,16 @@
 <script>
 flatpickr("#date-range", {
     mode: "range",
+    inline: true,
     minDate: "today",
     dateFormat: "Y-m-d",
+    disable: {{ booked_dates|safe }},
+    onDayCreate: function(dObj, dStr, fp, dayElem) {
+        const date = dayElem.dateObj.toISOString().split('T')[0];
+        if ({{ booked_dates|safe }}.includes(date)) {
+            dayElem.classList.add("booked");
+        }
+    },
     onChange: function(selectedDates) {
         if (selectedDates.length === 2) {
             document.getElementById("check_in").value = selectedDates[0].toISOString().split('T')[0];

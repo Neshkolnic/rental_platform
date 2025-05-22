@@ -10,6 +10,8 @@ from .models import Property, PropertyPhoto
 from django.contrib import messages
 from .models import AvailabilityCalendar
 from datetime import date
+from datetime import timedelta
+import json
 
 import os
 from django.conf import settings
@@ -91,10 +93,19 @@ def property_list(request):
 from django.shortcuts import get_object_or_404
 def property_detail(request, pk):
     property = get_object_or_404(Property, pk=pk)
-    availability = AvailabilityCalendar.objects.filter(property=property)
+    bookings = Booking.objects.filter(property=property)
+
+    # Собираем занятые даты (от check_in до check_out НЕ включительно)
+    booked_dates = []
+    for booking in bookings:
+        current_date = booking.check_in_date
+        while current_date < booking.check_out_date:
+            booked_dates.append(current_date.strftime('%Y-%m-%d'))
+            current_date += timedelta(days=1)
+
     return render(request, 'property/detail.html', {
         'property': property,
-        'availability': availability
+        'booked_dates': json.dumps(booked_dates),  # ← передаем в шаблон
     })
 
 @login_required
