@@ -27,12 +27,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data['message']
-        sender_id = self.scope['user'].id
+        sender = self.scope['user']
 
         booking = await self.get_booking()
         chat = await self.get_chat(booking)
 
-        sender = await self.get_user(sender_id)
+
         msg = await self.create_message(chat, sender, message)
 
         await self.channel_layer.group_send(
@@ -67,6 +67,4 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def create_message(self, chat, sender, content):
         return Message.objects.create(chat=chat, sender=sender, content=content)
 
-    @database_sync_to_async
-    def get_user(self, user_id):
-        return User.objects.get(id=user_id)
+
