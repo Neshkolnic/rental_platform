@@ -1,0 +1,16 @@
+<h2>Мои чаты</h2>
+
+<ul>
+  {% for chat in chats %}
+    <li>
+      <a href="{% url 'chat_room' chat.booking.id %}">
+        Чат по объекту: {{ chat.booking.property.title }}
+      </a>
+      <br>
+      Арендатор: {{ chat.tenant.username }} |
+      Арендодатель: {{ chat.landlord.username }}
+    </li>
+  {% empty %}
+    <li>Чатов пока нет.</li>
+  {% endfor %}
+</ul>
