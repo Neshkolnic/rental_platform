@@ -20,6 +20,7 @@
         <button type="submit">Сохранить изменения</button>
     </form>
 
-    <a href="{% url 'calendar_edit' %}">Перейти к редактированию календаря</a>
+    <!-- Передаем property.id в url -->
+    <a href="{% url 'calendar_edit' property.id %}">Перейти к редактированию календаря</a>
 </body>
 </html>
