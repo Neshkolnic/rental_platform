@@ -1,20 +1,22 @@
-from django.shortcuts import render, redirect
+from datetime import date, datetime, timedelta
+import json
+import os
+
+from django.conf import settings
+from django.contrib import messages
 from django.contrib.auth import login, logout
-from .forms import UserRegisterForm, UserLoginForm, PropertyForm
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from geopy.geocoders import Nominatim
-from django.views.generic import CreateView
+from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
-from .models import Property, PropertyPhoto
-from django.contrib import messages
-from .models import AvailabilityCalendar
-from datetime import date
-from datetime import timedelta
-import json
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+from django.views.generic import CreateView
 
-import os
-from django.conf import settings
+from geopy.geocoders import Nominatim
+
+from .forms import UserRegisterForm, UserLoginForm, PropertyForm, AvailabilityCalendarForm
+from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking
 
 
 def geocode_view(request):
@@ -24,7 +26,7 @@ def geocode_view(request):
         location = geolocator.geocode(address)
         if location:
             return JsonResponse({'lat': location.latitude, 'lon': location.longitude})
-    except:
+    except Exception:
         pass
     return JsonResponse({'error': 'Адрес не найден'}, status=400)
 
@@ -61,41 +63,33 @@ def logout_view(request):
 @login_required
 def create_property(request):
     if request.method == 'POST':
-        print(f"Получено файлов в request.FILES: {len(request.FILES.getlist('photos'))}")
         form = PropertyForm(request.POST, request.FILES)
-
         if form.is_valid():
-            print(f"Валидные данные, фотографий в cleaned_data: {len(form.cleaned_data.get('photos', []))}")
             try:
                 property_obj = form.save(owner=request.user)
                 messages.success(request, 'Объект и фотографии успешно сохранены!')
                 return redirect('property_detail', pk=property_obj.pk)
             except Exception as e:
                 messages.error(request, f'Ошибка при сохранении: {str(e)}')
-                print(f"Ошибка сохранения: {str(e)}")
         else:
             messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
-            print("Ошибки формы:", form.errors)
     else:
         form = PropertyForm()
-
     return render(request, 'property/create.html', {'form': form})
 
 
 def property_list(request):
     properties = Property.objects.filter(is_active=True)
-    for property in properties:
-        # Получаем первую фотографию
-        property.first_photo = property.photos.first()
-        property.short_description = property.description[:100]
+    for prop in properties:
+        prop.first_photo = prop.photos.first()
+        prop.short_description = prop.description[:100]
     return render(request, 'property/list.html', {'properties': properties})
 
-from django.shortcuts import get_object_or_404
-def property_detail(request, pk):
-    property = get_object_or_404(Property, pk=pk)
-    bookings = Booking.objects.filter(property=property)
 
-    # Собираем занятые даты (от check_in до check_out НЕ включительно)
+def property_detail(request, pk):
+    property_obj = get_object_or_404(Property, pk=pk)
+    bookings = Booking.objects.filter(property=property_obj)
+
     booked_dates = []
     for booking in bookings:
         current_date = booking.check_in_date
@@ -104,9 +98,10 @@ def property_detail(request, pk):
             current_date += timedelta(days=1)
 
     return render(request, 'property/detail.html', {
-        'property': property,
-        'booked_dates': json.dumps(booked_dates),  # ← передаем в шаблон
+        'property': property_obj,
+        'booked_dates': json.dumps(booked_dates),
     })
+
 
 @login_required
 def my_properties(request):
@@ -117,7 +112,7 @@ def my_properties(request):
 class PropertyCreateView(CreateView):
     model = Property
     form_class = PropertyForm
-    template_name = 'property/create.html'  # Путь к вашему шаблону
+    template_name = 'property/create.html'
     success_url = reverse_lazy('property_list')
 
     def form_valid(self, form):
@@ -132,113 +127,76 @@ class PropertyCreateView(CreateView):
             )
         return response
 
-from django.contrib.auth.decorators import login_required
-from .models import Booking
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from datetime import date
-from .models import Property, Booking
-
 
 @login_required
 def booking_confirm_view(request, property_id):
-    # Получаем объект недвижимости
-    property = get_object_or_404(Property, pk=property_id)
+    property_obj = get_object_or_404(Property, pk=property_id)
 
-    # Получаем параметры check_in и check_out из GET-запроса
     check_in = request.GET.get('check_in')
     check_out = request.GET.get('check_out')
 
-    # Проверяем, что обе даты переданы
     if not check_in or not check_out:
         return render(request, 'error.html', {'message': 'Пожалуйста, выберите обе даты.'})
 
-    # Преобразуем строки в объекты даты
     try:
         check_in_date = date.fromisoformat(check_in)
         check_out_date = date.fromisoformat(check_out)
     except ValueError:
         return render(request, 'error.html', {'message': 'Некорректный формат дат.'})
 
-    # Проверка, что дата выезда не раньше даты заезда
     if check_out_date <= check_in_date:
         return render(request, 'error.html', {'message': 'Дата выезда должна быть позже даты заезда.'})
 
-    # Вычисляем количество дней
     total_days = (check_out_date - check_in_date).days
-    total_price = total_days * property.price_per_night
-
     if total_days <= 0:
         return render(request, 'error.html', {'message': 'Продолжительность бронирования должна быть хотя бы 1 день.'})
 
-    # Если POST-запрос, создаем бронирование
+    total_price = total_days * property_obj.price_per_night
+
     if request.method == 'POST':
         booking = Booking.objects.create(
             tenant=request.user,
-            property=property,
+            property=property_obj,
             check_in_date=check_in_date,
             check_out_date=check_out_date,
             total_price=total_price,
             status=Booking.Status.PENDING
         )
-        # Перенаправляем в чат
         return redirect('chat_room', booking_id=booking.id)
 
-    # Возвращаем страницу подтверждения бронирования с данными
     return render(request, 'booking/confirm.html', {
-        'property': property,
+        'property': property_obj,
         'check_in': check_in,
         'check_out': check_out,
         'total_price': total_price,
     })
 
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Property, AvailabilityCalendar
-from .forms import AvailabilityCalendarForm
-from django.contrib.auth.decorators import login_required
-from datetime import datetime
-from django.shortcuts import render, get_object_or_404, redirect
-from .forms import PropertyForm
-from .models import Property
-from django.contrib.auth.decorators import login_required
-
-from .forms import AvailabilityCalendarForm
-
 
 @login_required
 def property_edit(request, pk):
-    property = get_object_or_404(Property, pk=pk)
+    property_obj = get_object_or_404(Property, pk=pk)
 
     if request.method == 'POST':
-        # Обработка формы редактирования объявления
-        title = request.POST.get('title')
-        description = request.POST.get('description')
-        price_per_night = request.POST.get('price_per_night')
+        property_obj.title = request.POST.get('title')
+        property_obj.description = request.POST.get('description')
+        property_obj.price_per_night = request.POST.get('price_per_night')
+        property_obj.save()
+        return redirect('property_edit', pk=property_obj.pk)
 
-        property.title = title
-        property.description = description
-        property.price_per_night = price_per_night
-        property.save()
-
-        return redirect('property_edit', pk=property.pk)
-
-    return render(request, 'property/property_edit.html', {'property': property})
+    return render(request, 'property/property_edit.html', {'property': property_obj})
 
 
 @login_required
-def calendar_edit(request):
-    # Получаем все объявления текущего пользователя
-    user_properties = Property.objects.filter(owner=request.user)
+def calendar_edit(request, property_id):
+    property_obj = get_object_or_404(Property, pk=property_id, owner=request.user)
+    return render(request, 'property/calendar_edit.html', {'property': property_obj})
 
-    return render(request, 'property/calendar_edit.html', {'user_properties': user_properties})
 
 
 @login_required
 def update_availability(request, property_id, date_str):
-    # Обновляем доступность и цену для конкретного дня
-    date = datetime.strptime(date_str, '%Y-%m-%d').date()
-    availability = AvailabilityCalendar.objects.get(property_id=property_id, date=date)
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    availability = AvailabilityCalendar.objects.get(property_id=property_id, date=date_obj)
 
     if request.method == 'POST':
         form = AvailabilityCalendarForm(request.POST, instance=availability)
@@ -250,13 +208,203 @@ def update_availability(request, property_id, date_str):
 
     return render(request, 'property/update_availability.html', {'availability': availability})
 
-# booking/views.py
+
 @login_required
 def calendar_view(request, property_id):
-    property = get_object_or_404(Property, id=property_id)
-    availability_calendar = AvailabilityCalendar.objects.filter(property=property)
+    property_obj = get_object_or_404(Property, id=property_id)
+    availability_calendar = AvailabilityCalendar.objects.filter(property=property_obj)
 
     return render(request, 'property/calendar_view.html', {
-        'property': property,
+        'property': property_obj,
         'availability_calendar': availability_calendar
     })
+
+
+@require_GET
+def availability_data(request):
+    property_id = request.GET.get('property_id')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    if not (property_id and start_date_str and end_date_str):
+        return JsonResponse({'error': 'Missing parameters'}, status=400)
+
+    try:
+        property_obj = Property.objects.get(pk=property_id)
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+    except (Property.DoesNotExist, ValueError):
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+
+    days_count = (end_date - start_date).days
+    if days_count <= 0:
+        return JsonResponse({'error': 'Invalid date range'}, status=400)
+
+    availability_records = AvailabilityCalendar.objects.filter(
+        property=property_obj,
+        date__gte=start_date,
+        date__lt=end_date
+    ).order_by('date')
+
+    result = []
+    unavailable = False
+    total_price = 0
+    current_date = start_date
+
+    for _ in range(days_count):
+        record = next((r for r in availability_records if r.date == current_date), None)
+
+        if record:
+            is_available = record.is_available
+            price = record.price if record.price is not None else property_obj.price_per_night
+        else:
+            is_available = True
+            price = property_obj.price_per_night
+
+        if not is_available:
+            unavailable = True
+
+        total_price += float(price)
+        result.append({
+            'date': current_date.isoformat(),
+            'is_available': is_available,
+            'price': float(price)
+        })
+        current_date += timedelta(days=1)
+
+    return JsonResponse({
+        'dates': result,
+        'total_price': total_price,
+        'is_available': not unavailable,
+    })
+
+
+@csrf_exempt  # временно, потом заменить на проверку токена/CSRF
+@require_POST
+@login_required
+def update_availability_ajax(request):
+    try:
+        data = json.loads(request.body)
+        property_id = data['property_id']
+        date_str = data['date']
+        is_available = data['is_available']
+        price = data.get('price', '')
+
+        date_obj = date.fromisoformat(date_str)
+        prop = Property.objects.get(id=property_id, owner=request.user)
+
+        obj, _ = AvailabilityCalendar.objects.get_or_create(property=prop, date=date_obj)
+        obj.is_available = is_available
+        obj.price = price if price != '' else None
+        obj.save()
+
+        return JsonResponse({'status': 'ok'})
+    except Property.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Property not found or not owned by user'}, status=403)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+@csrf_exempt
+def save_availability(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        property_id = data.get('property_id')
+        date_str = data.get('date')
+        price = data.get('price')
+        is_available = data.get('is_available')
+
+        if not all([property_id, date_str, price is not None, is_available is not None]):
+            return JsonResponse({'error': 'Missing data'}, status=400)
+
+        property_obj = Property.objects.get(pk=property_id)
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        record, created = AvailabilityCalendar.objects.get_or_create(property=property_obj, date=date_obj)
+        record.price = price
+        record.is_available = is_available
+        record.save()
+
+        return JsonResponse({'success': True})
+    except Exception:
+        return JsonResponse({'error': 'Invalid data'}, status=400)
+
+
+@require_GET
+def api_availability_data(request):
+    property_id = request.GET.get('property_id')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    try:
+        property_obj = Property.objects.get(pk=property_id)
+        start_date = date.fromisoformat(start_date_str)
+        end_date = date.fromisoformat(end_date_str)
+    except Exception:
+        return JsonResponse({'error': 'Invalid parameters'}, status=400)
+
+    days = (end_date - start_date).days
+    if days <= 0:
+        return JsonResponse({'error': 'Invalid date range'}, status=400)
+
+    availability_records = AvailabilityCalendar.objects.filter(
+        property=property_obj,
+        date__gte=start_date,
+        date__lt=end_date
+    ).order_by('date')
+
+    data = {}
+    for rec in availability_records:
+        data[rec.date.isoformat()] = {
+            'price': float(rec.price) if rec.price is not None else float(property_obj.price_per_night),
+            'is_available': rec.is_available
+        }
+
+    result = []
+    current = start_date
+    while current < end_date:
+        day_str = current.isoformat()
+        if day_str not in data:
+            data[day_str] = {
+                'price': float(property_obj.price_per_night),
+                'is_available': True
+            }
+        result.append({
+            'date': day_str,
+            'price': data[day_str]['price'],
+            'is_available': data[day_str]['is_available']
+        })
+        current += timedelta(days=1)
+
+    return JsonResponse({'dates': result})
+
+
+@csrf_exempt
+def api_save_availability(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        property_id = data['property_id']
+        date_str = data['date']
+        price = data['price']
+        is_available = data['is_available']
+    except (KeyError, json.JSONDecodeError):
+        return JsonResponse({'error': 'Invalid data'}, status=400)
+
+    try:
+        property_obj = Property.objects.get(pk=property_id)
+        date_obj = date.fromisoformat(date_str)
+    except Exception:
+        return JsonResponse({'error': 'Invalid property or date'}, status=400)
+
+    record, _ = AvailabilityCalendar.objects.get_or_create(property=property_obj, date=date_obj)
+    record.price = price
+    record.is_available = is_available
+    record.save()
+
+    return JsonResponse({'success': True})

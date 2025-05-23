@@ -1,33 +1,14 @@
-<div class="property-detail">
-    <h1>{{ property.title }}</h1>
-    <p>{{ property.description }}</p>
-    <p>Цена за ночь: ${{ property.price_per_night }}</p>
+<h3>Выберите даты для бронирования:</h3>
 
-    <!-- Фотографии -->
-    <div class="property-photos">
-        {% for photo in property.photos.all %}
-            <img src="{{ photo.image.url }}" alt="Фото {{ property.title }}" class="property-photo">
-        {% empty %}
-            <p>Нет фотографий для этого объекта.</p>
-        {% endfor %}
-    </div>
+<input type="text" id="date-range" placeholder="Выберите даты" />
+<p id="total-price" style="margin-top: 10px;">Итоговая стоимость: -</p>
 
-    <!-- Карта -->
-    <div id="map" style="width: 100%; height: 400px; margin-top: 30px;"></div>
-</div>
+<form action="{% url 'booking_confirm' property.id %}" method="get">
+    <input type="hidden" name="check_in" id="check_in">
+    <input type="hidden" name="check_out" id="check_out">
+    <button type="submit" class="btn btn-primary">Перейти к бронированию</button>
+</form>
 
-<!-- Календарь бронирования -->
-<div style="margin-top: 30px;">
-    <h3>Выберите даты для бронирования:</h3>
-
-    <input type="text" id="date-range" placeholder="Выберите даты" />
-
-    <form action="{% url 'booking_confirm' property.id %}" method="get">
-        <input type="hidden" name="check_in" id="check_in">
-        <input type="hidden" name="check_out" id="check_out">
-        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Перейти к бронированию</button>
-    </form>
-</div>
 <style>
   .flatpickr-day.booked {
     background-color: #e57373 !important;
@@ -37,51 +18,68 @@
   }
 </style>
 
-<!-- Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <script>
+const bookedDates = {{ booked_dates|safe }};  // Занятые даты для визуала
+const defaultPrice = {{ property.price_per_night }};
+const propertyId = {{ property.id }};
+
 flatpickr("#date-range", {
     mode: "range",
     inline: true,
     minDate: "today",
     dateFormat: "Y-m-d",
-    disable: {{ booked_dates|safe }},
+    disable: bookedDates,
     onDayCreate: function(dObj, dStr, fp, dayElem) {
         const date = dayElem.dateObj.toISOString().split('T')[0];
-        if ({{ booked_dates|safe }}.includes(date)) {
+        if (bookedDates.includes(date)) {
             dayElem.classList.add("booked");
         }
     },
     onChange: function(selectedDates) {
         if (selectedDates.length === 2) {
-            document.getElementById("check_in").value = selectedDates[0].toISOString().split('T')[0];
-            document.getElementById("check_out").value = selectedDates[1].toISOString().split('T')[0];
+            const checkIn = selectedDates[0].toISOString().split('T')[0];
+            const checkOut = selectedDates[1].toISOString().split('T')[0];
+
+            document.getElementById("check_in").value = checkIn;
+            document.getElementById("check_out").value = checkOut;
+
+            fetch(`/api/availability-data/?property_id=${propertyId}&start_date=${checkIn}&end_date=${checkOut}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById("total-price").innerText = "Ошибка: " + data.error;
+                        return;
+                    }
+
+                    // data.dates - список объектов с {date, price, is_available}
+                    let allAvailable = true;
+                    let totalPrice = 0;
+
+                    data.dates.forEach(day => {
+                        if (!day.is_available) {
+                            allAvailable = false;
+                        }
+                        totalPrice += day.price ?? defaultPrice;
+                    });
+
+                    if (!allAvailable) {
+                        document.getElementById("total-price").innerText = "Выбранные даты недоступны для бронирования.";
+                    } else {
+                        document.getElementById("total-price").innerText = "Итоговая стоимость: $" + totalPrice.toFixed(2);
+                    }
+                })
+                .catch(() => {
+                    document.getElementById("total-price").innerText = "Ошибка при получении данных о доступности.";
+                });
+
+        } else {
+            document.getElementById("total-price").innerText = "Итоговая стоимость: -";
+            document.getElementById("check_in").value = "";
+            document.getElementById("check_out").value = "";
         }
     }
-});
-</script>
-
-
-<!-- Подключение Яндекс.Карт -->
-<script src="https://api-maps.yandex.ru/2.1/?apikey=your-api-key&lang=ru_RU"></script>
-<script>
-ymaps.ready(function() {
-    const map = new ymaps.Map('map', {
-        center: [{{ property.latitude }}, {{ property.longitude }}],  // Центр карты по координатам объекта
-        zoom: 15
-    });
-
-    const placemark = new ymaps.Placemark([{{ property.latitude }}, {{ property.longitude }}], {
-        balloonContent: `
-            <h3>{{ property.title }}</h3>
-            <p>{{ property.description|truncatewords:30 }}</p>
-            <p>Цена за ночь: ${{ property.price_per_night }}</p>
-        `
-    });
-
-    // Добавляем маркер на карту
-    map.geoObjects.add(placemark);
 });
 </script>

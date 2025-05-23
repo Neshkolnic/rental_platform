@@ -1,15 +1,116 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Редактировать календарь</title>
-</head>
-<body>
-    <h1>Редактировать календарь</h1>
+<input type="text" id="calendar" />
 
-    {% for property in user_properties %}
-        <h2>{{ property.title }}</h2>
-        <a href="{% url 'calendar_view' property_id=property.id %}">Посмотреть календарь</a>
-        <br>
-    {% endfor %}
-</body>
-</html>
+<div id="edit-modal" style="display:none; position:fixed; top:20%; left:40%; background:#fff; padding:20px; border:1px solid #ccc;">
+  <h3>Редактировать дату: <span id="selected-date"></span></h3>
+  <label>Цена: <input type="number" id="price-input" step="0.01" min="0"></label><br><br>
+  <label>Доступна: <input type="checkbox" id="available-checkbox"></label><br><br>
+  <button id="save-btn">Сохранить</button>
+  <button id="cancel-btn">Отмена</button>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<script>
+const propertyId = {{ property.id|default:"null" }};
+const csrfToken = '{{ csrf_token|default:"" }}';
+let availabilityData = {};
+let selectedDate = null;
+let calendarInstance = null;
+
+function fetchAvailability() {
+    if (!propertyId) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    const nextMonthStr = nextMonth.toISOString().split('T')[0];
+
+    fetch(`/api/availability-data/?property_id=${propertyId}&start_date=${today}&end_date=${nextMonthStr}`)
+    .then(res => res.json())
+    .then(data => {
+        availabilityData = {};
+        data.dates.forEach(item => {
+            availabilityData[item.date] = {
+                price: item.price,
+                is_available: item.is_available
+            };
+        });
+        renderCalendar();
+    });
+}
+
+function renderCalendar() {
+    if (calendarInstance) {
+        calendarInstance.destroy();
+    }
+
+    calendarInstance = flatpickr("#calendar", {
+        inline: true,
+        mode: "single",
+        minDate: "today",
+        onDayCreate: (dObj, dStr, fp, dayElem) => {
+            const date = dayElem.dateObj.toISOString().split('T')[0];
+            if (availabilityData[date]) {
+                if (!availabilityData[date].is_available) {
+                    dayElem.style.backgroundColor = "#e57373";
+                    dayElem.style.color = "white";
+                } else {
+                    dayElem.title = `Цена: $${availabilityData[date].price.toFixed(2)}`;
+                }
+            }
+        },
+        onChange: (selectedDates) => {
+            if (selectedDates.length) {
+                selectedDate = selectedDates[0].toISOString().split('T')[0];
+                openEditModal(selectedDate);
+            }
+        }
+    });
+}
+
+function openEditModal(date) {
+    document.getElementById('selected-date').textContent = date;
+    const defaultPrice = {{ property.price_per_night|default:"0" }};
+    const data = availabilityData[date] || { price: defaultPrice, is_available: true };
+    document.getElementById('price-input').value = data.price;
+    document.getElementById('available-checkbox').checked = data.is_available;
+    document.getElementById('edit-modal').style.display = 'block';
+}
+
+document.getElementById('save-btn').onclick = function() {
+    const price = parseFloat(document.getElementById('price-input').value);
+    const is_available = document.getElementById('available-checkbox').checked;
+
+    fetch('/api/save-availability/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            property_id: propertyId,
+            date: selectedDate,
+            price: price,
+            is_available: is_available
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            availabilityData[selectedDate] = { price, is_available };
+            document.getElementById('edit-modal').style.display = 'none';
+            renderCalendar();
+        } else {
+            alert("Ошибка при сохранении");
+        }
+    })
+    .catch(() => alert("Ошибка при сохранении"));
+};
+
+document.getElementById('cancel-btn').onclick = function() {
+    document.getElementById('edit-modal').style.display = 'none';
+};
+
+fetchAvailability();
+</script>
