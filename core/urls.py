@@ -21,6 +21,8 @@ urlpatterns = [
     path('', include('booking.urls')),
      path('properties/create/', create_property, name='create_property'),
     # URL allauth (социальная авторизация)
+    path('adminpanel/', include('adminpanel.urls')),
+
     path('accounts/', include('allauth.urls')),
     path('password-reset/',
          auth_views.PasswordResetView.as_view(

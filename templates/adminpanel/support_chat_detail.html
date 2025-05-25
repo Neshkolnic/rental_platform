@@ -1,0 +1,15 @@
+<h2>Чат поддержки №{{ chat.id }}</h2>
+
+<div>
+  {% for message in messages %}
+    <p><strong>{{ message.sender.username }}:</strong> {{ message.content }}</p>
+  {% empty %}
+    <p>Сообщений пока нет.</p>
+  {% endfor %}
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <textarea name="message" rows="3" required></textarea><br>
+  <button type="submit">Отправить</button>
+</form>

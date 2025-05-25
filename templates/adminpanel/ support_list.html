@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Список чатов для поддержки{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 20px;">
+  <h1>Чаты без саппорта</h1>
+
+  {% if chats %}
+    <ul style="list-style: none; padding: 0;">
+      {% for chat in chats %}
+        <li style="padding: 10px; border-bottom: 1px solid #ddd;">
+          <strong>Чат ID:</strong> {{ chat.id }}<br>
+          <strong>Бронирование:</strong> {{ chat.booking.id if chat.booking }}<br>
+          <strong>Пользователь:</strong> {{ chat.tenant.username if chat.tenant }}<br>
+          <strong>Последнее сообщение:</strong>
+          {% if chat.messages.last %}
+            {{ chat.messages.last.content|truncatechars:50 }}
+            <em>({{ chat.messages.last.created_at|date:"d.m.Y H:i" }})</em>
+          {% else %}
+            Нет сообщений
+          {% endif %}
+          <br>
+          <a href="{% url 'adminpanel:assign_support' chat.id %}" style="color: green; font-weight: bold;">
+            Назначить меня
+          </a>
+          |
+          <a href="{% url 'chat:support_chat' chat.id %}" target="_blank" style="color: blue;">
+            Открыть чат
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет доступных чатов.</p>
+  {% endif %}
+</div>
+{% endblock %}

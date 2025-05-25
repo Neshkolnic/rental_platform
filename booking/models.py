@@ -20,6 +20,8 @@ class User(AbstractUser):
     role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
     password = models.CharField(max_length=128, blank=True)
     is_verified = models.BooleanField(default=False)
+    is_moderator = models.BooleanField(default=False)
+    is_support = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -61,6 +63,8 @@ class Property(models.Model):
 
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='properties')
     title = models.CharField(max_length=255)
+    is_published = models.BooleanField(default=False)
+    is_approved = models.BooleanField(default=False)
     description = models.TextField()
     property_type = models.CharField(max_length=50, choices=PropertyType.choices)
     room_count = models.PositiveIntegerField()
