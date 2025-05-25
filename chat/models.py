@@ -1,23 +1,35 @@
 from django.db import models
-from django.conf import settings  # для AUTH_USER_MODEL
-from booking.models import Booking  # импортируем модель бронирования
+from django.conf import settings
+from booking.models import Booking
+
+User = settings.AUTH_USER_MODEL
+
 
 class Chat(models.Model):
-    booking = models.OneToOneField(Booking, on_delete=models.CASCADE)
+    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, null=True, blank=True)
     tenant = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         related_name='tenant_chats',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
     landlord = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         related_name='landlord_chats',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
+    is_support_chat = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Chat for booking {self.booking.id}"
+        if self.booking:
+            return f"Chat for booking {self.booking.id}"
+        if self.is_support_chat:
+            return f"Support chat for {self.tenant}"
+        return f"Chat {self.id}"
 
 
 class Message(models.Model):
@@ -27,11 +39,21 @@ class Message(models.Model):
         on_delete=models.CASCADE
     )
     sender = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        User,
         on_delete=models.CASCADE
     )
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Message by {self.sender.username} at {self.created_at}"
+        return f"Message by {self.sender} at {self.created_at}"
+
+
+class SupportAssignment(models.Model):
+    chat = models.OneToOneField(Chat, on_delete=models.CASCADE)
+    support = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_support_assignments')
+    is_resolved = models.BooleanField(default=False)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.support} assigned to Chat {self.chat.id}"

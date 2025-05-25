@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 20px;">
+  <h1>Панель администратора</h1>
+  <p>Добро пожаловать, {{ request.user.username }}!</p>
+
+  {% if request.user.is_support %}
+    <h3>Чаты поддержки без назначения:</h3>
+    {% if unassigned_chats %}
+      <ul>
+        {% for chat in unassigned_chats %}
+          <li>
+            Чат ID: {{ chat.id }}
+            <a href="{% url 'adminpanel:assign_support' chat.id %}" style="color: green;">Назначить меня</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет чатов без назначения.</p>
+    {% endif %}
+  {% endif %}
+
+  <h3>Объявления без модерации:</h3>
+  {% if unassigned_properties %}
+    <ul>
+      {% for property in unassigned_properties %}
+        <li>
+          {{ property.title }} — {{ property.city }}
+          <a href="{% url 'adminpanel:assign_moderator' property.id %}">Назначить себя</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>Нет необработанных объявлений.</p>
+  {% endif %}
+
+  <p><a href="{% url 'adminpanel:my_assignments' %}">Перейти в мои задания</a></p>
+</div>
+{% endblock %}

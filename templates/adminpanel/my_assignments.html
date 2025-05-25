@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Мои задания{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 30px auto; padding: 20px;">
+  <h1>Мои задания</h1>
+
+  {% if user.is_moderator %}
+    <h2>Объявления для модерации</h2>
+    {% if my_properties %}
+      <ul>
+        {% for assignment in my_properties %}
+          <li>
+            <strong>{{ assignment.property.title }}</strong> <!-- замените на нужное поле -->
+            <br>
+            <a href="{% url 'adminpanel:approve_property' assignment.id %}" style="color: green;">Утвердить</a> |
+            <a href="{% url 'adminpanel:reject_property' assignment.id %}" style="color: red;">Отклонить</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет назначенных объявлений.</p>
+    {% endif %}
+  {% endif %}
+
+  {% if user.is_support %}
+    <h2>Мои чаты поддержки</h2>
+    {% if my_chats %}
+      <ul>
+        {% for assignment in my_chats %}
+          <li>
+            <strong>Чат ID: {{ assignment.chat.id }}</strong> <!-- или другая инфа о чате -->
+            <br>
+            <a href="{% url 'adminpanel:resolve_chat' assignment.id %}" style="color: blue;">Отметить как решённый</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет назначенных чатов.</p>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

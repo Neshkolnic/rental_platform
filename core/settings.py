@@ -32,6 +32,8 @@ INSTALLED_APPS = [
     'chat',
 
     'channels',
+    'adminpanel',
+
 
 
     # Third-party apps

@@ -162,7 +162,7 @@ def booking_confirm_view(request, property_id):
             total_price=total_price,
             status=Booking.Status.PENDING
         )
-        return redirect('chat_room', booking_id=booking.id)
+        return redirect('chat:chat_room', booking_id=booking.id)
 
     return render(request, 'booking/confirm.html', {
         'property': property_obj,
