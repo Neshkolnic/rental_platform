@@ -23,6 +23,9 @@ class Chat(models.Model):
     )
     is_support_chat = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_closed = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
 
     def __str__(self):
         if self.booking:
@@ -30,7 +33,6 @@ class Chat(models.Model):
         if self.is_support_chat:
             return f"Support chat for {self.tenant}"
         return f"Chat {self.id}"
-
 
 class Message(models.Model):
     chat = models.ForeignKey(

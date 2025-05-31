@@ -1,43 +1,57 @@
-{% extends "base.html" %}
-{% load static %}
-
-{% block title %}Панель администратора{% endblock %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div style="max-width: 900px; margin: 30px auto; padding: 20px;">
-  <h1>Панель администратора</h1>
-  <p>Добро пожаловать, {{ request.user.username }}!</p>
+<h1>Добро пожаловать, {{ user.username }}</h1>
 
-  {% if request.user.is_support %}
-    <h3>Чаты поддержки без назначения:</h3>
-    {% if unassigned_chats %}
-      <ul>
-        {% for chat in unassigned_chats %}
-          <li>
-            Чат ID: {{ chat.id }}
-            <a href="{% url 'adminpanel:assign_support' chat.id %}" style="color: green;">Назначить меня</a>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p>Нет чатов без назначения.</p>
-    {% endif %}
-  {% endif %}
-
-  <h3>Объявления без модерации:</h3>
-  {% if unassigned_properties %}
+<h2>Непроверенные объявления</h2>
+{% if unassigned_properties %}
     <ul>
-      {% for property in unassigned_properties %}
+    {% for prop in unassigned_properties %}
         <li>
-          {{ property.title }} — {{ property.city }}
-          <a href="{% url 'adminpanel:assign_moderator' property.id %}">Назначить себя</a>
+            {{ prop.title }} —
+            <a href="{% url 'adminpanel:assign_moderator' prop.id %}">Назначить мне</a>
         </li>
-      {% endfor %}
+    {% endfor %}
     </ul>
-  {% else %}
-    <p>Нет необработанных объявлений.</p>
-  {% endif %}
+{% else %}
+    <p>Нет новых объявлений для модерации.</p>
+{% endif %}
 
-  <p><a href="{% url 'adminpanel:my_assignments' %}">Перейти в мои задания</a></p>
-</div>
+
+{% if user.is_support %}
+    <h2>Неприсвоенные чаты поддержки</h2>
+    {% if unassigned_chats %}
+        <ul>
+        {% for chat in unassigned_chats %}
+            <li>
+                Чат ID {{ chat.id }}, арендатор: {{ chat.tenant.username|default:"Неизвестно" }} —
+                <a href="{% url 'adminpanel:assign_support' chat.id %}">Назначить мне</a>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Нет новых обращений в поддержку.</p>
+    {% endif %}
+
+    <h2>Мои активные чаты</h2>
+    {% if my_support_chats %}
+        <ul>
+        {% for chat in my_support_chats %}
+            <li>
+                <strong>Чат ID {{ chat.id }}</strong> с {{ chat.tenant.username|default:"неизвестно" }}<br>
+
+                <a href="{% url 'adminpanel:support_chat_detail' chat.id %}">Открыть чат</a> |
+                <a href="{% url 'adminpanel:resolve_chat' chat.id %}">Завершить чат</a>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>У вас нет активных чатов.</p>
+    {% endif %}
+{% endif %}
+
+
+<h2>Мои задания</h2>
+<a href="{% url 'adminpanel:my_assignments' %}">Перейти к моим заданиям</a> |
+<a href="{% url 'logout' %}">Выйти</a>
 {% endblock %}

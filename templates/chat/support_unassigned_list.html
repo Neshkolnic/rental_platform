@@ -1,0 +1,19 @@
+{% extends 'adminpanel/base.html' %}
+{% block content %}
+<h1>Необработанные чаты поддержки</h1>
+
+{% if chats %}
+  <ul>
+    {% for chat in chats %}
+      <li>
+        Чат #{{ chat.id }} от пользователя {{ chat.tenant.username }} — создан {{ chat.created_at|date:"d M Y, H:i" }}
+        <a href="{% url 'adminpanel:assign_support_chat' chat.id %}" class="btn btn-primary">Забрать чат</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет необработанных чатов.</p>
+{% endif %}
+
+<a href="{% url 'adminpanel:dashboard' %}">Назад в дашборд</a>
+{% endblock %}
