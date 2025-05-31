@@ -40,24 +40,25 @@ from django.http import HttpResponseForbidden
 
 @login_required
 def support_chat_view(request):
+    # Получаем или создаём чат поддержки для текущего пользователя
     chat, created = Chat.objects.get_or_create(
         is_support_chat=True,
         tenant=request.user,
-        defaults={'landlord': None, 'booking': None}
+        defaults={'booking': None, 'landlord': None}
     )
-
-    # Проверяем назначение саппорта, если оно есть
-    try:
-        assignment = SupportAssignment.objects.get(chat=chat)
-        if assignment.support != request.user:
-            return HttpResponseForbidden("У вас нет доступа к этому чату.")
-    except SupportAssignment.DoesNotExist:
-        # Нет назначенного саппорта — разрешаем пользователю писать в поддержку
-        assignment = None
 
     if request.method == 'POST':
         content = request.POST.get('message', '').strip()
         if content:
+            # Если чат был закрыт, открываем и сбрасываем назначение саппорта
+            if chat.is_closed:
+                chat.is_closed = False
+                chat.save()
+
+                # Удаляем назначение оператора (если есть)
+                from adminpanel.models import SupportAssignment
+                SupportAssignment.objects.filter(chat=chat).delete()
+
             Message.objects.create(
                 chat=chat,
                 sender=request.user,
@@ -69,5 +70,4 @@ def support_chat_view(request):
     return render(request, 'chat/chat_support.html', {
         'chat': chat,
         'messages': messages,
-        'assignment': assignment,
     })
