@@ -66,6 +66,8 @@ class Property(models.Model):
     is_published = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)
     description = models.TextField()
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    review_count = models.PositiveIntegerField(default=0)
     property_type = models.CharField(max_length=50, choices=PropertyType.choices)
     room_count = models.PositiveIntegerField()
     guest_capacity = models.PositiveIntegerField()
@@ -176,11 +178,20 @@ class Booking(models.Model):
             raise ValidationError('This property is already booked for selected dates')
 
     def save(self, *args, **kwargs):
+        # Сохраняем старый статус для проверки изменения
+        old_status = None
+        if self.pk:
+            old = Booking.objects.filter(pk=self.pk).first()
+            if old:
+                old_status = old.status
+
         self.full_clean()
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"Booking #{self.id} for {self.property.title}"
+        # Если статус изменился на COMPLETED — запустить уведомление
+        if old_status != self.status and self.status == Booking.Status.COMPLETED:
+            from booking.utils import schedule_review_reminder
+            schedule_review_reminder(self.id, delay_seconds=3)
 
 
 class Payment(models.Model):
@@ -306,4 +317,31 @@ class Message(models.Model):
         return f"Message from {self.sender} to {self.receiver}"
 
 
+from django.db import models
+from django.conf import settings
 
+
+class Review(models.Model):
+    booking = models.OneToOneField('Booking', on_delete=models.CASCADE, related_name='review')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    property = models.ForeignKey('Property', on_delete=models.CASCADE, related_name='reviews')
+
+    rating = models.PositiveSmallIntegerField()  # от 1 до 5
+    comment = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        # Пересчет рейтинга
+        reviews = Review.objects.filter(property=self.property)
+        total = reviews.count()
+        avg = reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0
+
+        self.property.average_rating = round(avg, 2)
+        self.property.review_count = total
+        self.property.save()
+
+    def __str__(self):
+        return f'Отзыв от {self.author} для {self.property}'

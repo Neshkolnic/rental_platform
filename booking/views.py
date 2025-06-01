@@ -408,3 +408,33 @@ def api_save_availability(request):
     record.save()
 
     return JsonResponse({'success': True})
+
+
+from .models import Booking, Review
+from .forms import ReviewForm
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+
+
+
+@login_required
+def leave_review_view(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, tenant=request.user)
+
+    if hasattr(booking, 'review'):
+        return HttpResponse("Вы уже оставили отзыв.")
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.booking = booking
+            review.property = booking.property
+            review.author = request.user
+            review.save()
+            return redirect('property_detail', pk=booking.property.id)
+    else:
+        form = ReviewForm()
+
+    return render(request, 'reviews/leave_review.html', {'form': form, 'booking': booking})
