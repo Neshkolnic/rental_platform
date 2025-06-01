@@ -4,6 +4,19 @@
 <h1>{{ property.title }}</h1>
 <p>{{ property.address }}</p>
 
+<h4>Рейтинг: {{ property.average_rating }} ★ ({{ property.review_count }} отзывов)</h4>
+
+{% for review in property.reviews.all %}
+    <div style="border-bottom:1px solid #ccc; margin-bottom:10px;">
+        <strong>{{ review.author.get_full_name }}</strong> — ★{{ review.rating }}<br>
+        {{ review.comment }}<br>
+        <small>{{ review.created_at|date:"d.m.Y H:i" }}</small>
+    </div>
+{% empty %}
+    <p>Отзывов пока нет.</p>
+{% endfor %}
+
+
 <!-- Карта через iframe -->
 <div class="map-container">
     <iframe 

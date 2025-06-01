@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from .views import save_availability, api_availability_data, api_save_availability
+from .views import leave_review_view
 
 urlpatterns = [
     path('register/', views.register_view, name='register'),
@@ -12,8 +13,7 @@ urlpatterns = [
     path('property/<int:pk>/edit/', views.property_edit, name='property_edit'),
     path('calendar/edit/<int:property_id>/', views.calendar_edit, name='calendar_edit'),
 
-
-
+    path('booking/<int:booking_id>/review/', leave_review_view, name='leave_review'),
     path('calendar/view/<int:property_id>/', views.calendar_view, name='calendar_view'),
     path('update-availability/<int:property_id>/<str:date_str>/', views.update_availability,
          name='update_availability'),
