@@ -28,6 +28,14 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 
+    # в модели User добавь метод
+
+    def get_all_reviews(self):
+        reviews_about_user = self.reviews_received.all()
+        user_properties = self.properties.all()  # если related_name='properties' в модели Property для owner
+        reviews_about_properties = Review.objects.filter(property__in=user_properties, review_type='property')
+        return reviews_about_user | reviews_about_properties
+
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
@@ -223,27 +231,27 @@ class Payment(models.Model):
         return f"Payment #{self.id} for Booking #{self.booking.id}"
 
 
-class Review(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
-    property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='reviews')
-    booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='review')
-    rating = models.PositiveSmallIntegerField()
-    comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('booking', 'author')
-
-    def clean(self):
-        if not 1 <= self.rating <= 5:
-            raise ValidationError('Rating must be between 1 and 5')
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"Review by {self.author.full_name} for {self.property.title}"
+# class Review(models.Model):
+#     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews')
+#     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='reviews')
+#     booking = models.ForeignKey(Booking, on_delete=models.CASCADE, related_name='review')
+#     rating = models.PositiveSmallIntegerField()
+#     comment = models.TextField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#
+#     class Meta:
+#         unique_together = ('booking', 'author')
+#
+#     def clean(self):
+#         if not 1 <= self.rating <= 5:
+#             raise ValidationError('Rating must be between 1 and 5')
+#
+#     def save(self, *args, **kwargs):
+#         self.full_clean()
+#         super().save(*args, **kwargs)
+#
+#     def __str__(self):
+#         return f"Review by {self.author.full_name} for {self.property.title}"
 
 
 class UserRating(models.Model):
@@ -327,10 +335,23 @@ from django.db import models
 from django.conf import settings
 
 
+from django.db import models
+from django.conf import settings
+from django.db.models import Avg
+
 class Review(models.Model):
+    REVIEW_TYPE_CHOICES = (
+        ('property', 'Property'),       # отзыв об объекте недвижимости
+        ('tenant', 'Tenant'),           # отзыв о арендаторе (владельцем)
+        ('landlord', 'Landlord'),       # отзыв о собственнике (арендатором)
+    )
+
     booking = models.OneToOneField('Booking', on_delete=models.CASCADE, related_name='review')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    property = models.ForeignKey('Property', on_delete=models.CASCADE, related_name='reviews')
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='reviews_received', null=True, blank=True)
+    property = models.ForeignKey('Property', on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
+
+    review_type = models.CharField(max_length=10, choices=REVIEW_TYPE_CHOICES)
 
     rating = models.PositiveSmallIntegerField()  # от 1 до 5
     comment = models.TextField(blank=True)
@@ -340,14 +361,26 @@ class Review(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-        # Пересчет рейтинга
-        reviews = Review.objects.filter(property=self.property)
-        total = reviews.count()
-        avg = reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0
+        if self.review_type == 'property':
+            # Пересчёт рейтинга недвижимости
+            reviews = Review.objects.filter(property=self.property, review_type='property')
+            total = reviews.count()
+            avg = reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0
 
-        self.property.average_rating = round(avg, 2)
-        self.property.review_count = total
-        self.property.save()
+            self.property.average_rating = round(avg, 2)
+            self.property.review_count = total
+            self.property.save()
+        elif self.review_type in ('tenant', 'landlord'):
+            # Пересчёт рейтинга пользователя, если нужно
+            user = self.to_user
+            reviews = Review.objects.filter(to_user=user, review_type=self.review_type)
+            total = reviews.count()
+            avg = reviews.aggregate(models.Avg('rating'))['rating__avg'] or 0
+
+            # Предположим, у пользователя есть поля average_rating и review_count (нужно добавить, если нет)
+            user.average_rating = round(avg, 2)
+            user.review_count = total
+            user.save()
 
     def __str__(self):
-        return f'Отзыв от {self.author} для {self.property}'
+        return f'Отзыв от {self.author} для {self.to_user if self.to_user else self.property}'

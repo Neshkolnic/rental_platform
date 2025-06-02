@@ -456,7 +456,13 @@ def profile_view(request):
     else:
         form = ProfileForm(instance=user)
 
-    return render(request, 'profile/profile.html', {'form': form})
+    # Получаем все отзывы пользователя
+    reviews = user.get_all_reviews()
+
+    return render(request, 'profile/profile.html', {
+        'form': form,
+        'reviews': reviews,
+    })
 
 
 
@@ -467,16 +473,17 @@ def profile_view(request):
     if request.method == 'POST':
         form = ProfileForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
-            profile = form.save(commit=False)
-            avatar_file = form.cleaned_data.get('avatar_file')
-            if avatar_file:
-                profile.avatar = avatar_file.read()
-            profile.save()
-            return redirect('profile')  # имя из urls.py
+            form.save()
+            return redirect('profile_view')
     else:
         form = ProfileForm(instance=user)
 
-    return render(request, 'profile/profile.html', {'form': form})
+    reviews = user.get_all_reviews()
+
+    return render(request, 'profile/profile.html', {
+        'form': form,
+        'reviews': reviews,
+    })
 
 
 # ➕ Добавим avatar_view
@@ -486,3 +493,130 @@ def avatar_view(request, user_id):
     if user.avatar:
         return HttpResponse(user.avatar, content_type='image/jpeg')  # или 'image/png'
     raise Http404("Avatar not found")
+
+from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.decorators import login_required
+from .models import Booking, Review, Property
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
+from .models import Booking, Review
+from .forms import ReviewForm
+
+@login_required
+def leave_review_landlord_view(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    # Проверяем, что текущий пользователь — арендатор брони
+    if request.user != booking.tenant:
+        return HttpResponse("У вас нет прав оставлять отзыв об этом владельце.", status=403)
+
+    # Если отзыв уже есть, можно не позволять оставить ещё один (по желанию)
+    if Review.objects.filter(booking=booking, review_type='landlord').exists():
+        return HttpResponse("Вы уже оставили отзыв об этом владельце.")
+
+    if request.method == 'POST':
+        # Если используешь форму:
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.booking = booking
+            review.property = booking.property
+            review.author = request.user
+            review.to_user = booking.property.owner
+            review.review_type = 'landlord'
+            review.save()
+            return redirect('profile_view')
+
+        # Если формы нет — ниже пример с ручной обработкой:
+        # rating = request.POST.get('rating')
+        # if not rating:
+        #     return render(request, 'booking/leave_review_landlord.html', {
+        #         'booking': booking,
+        #         'error': 'Пожалуйста, укажите рейтинг.'
+        #     })
+        # try:
+        #     rating = int(rating)
+        # except ValueError:
+        #     return render(request, 'booking/leave_review_landlord.html', {
+        #         'booking': booking,
+        #         'error': 'Некорректный рейтинг.'
+        #     })
+        # comment = request.POST.get('comment', '')
+        # Review.objects.create(
+        #     booking=booking,
+        #     review_type='landlord',
+        #     author=request.user,
+        #     to_user=booking.property.owner,
+        #     property=booking.property,
+        #     rating=rating,
+        #     comment=comment
+        # )
+        # return redirect('profile_view')
+
+    else:
+        form = ReviewForm()
+
+    return render(request, 'booking/leave_review_landlord.html', {
+        'booking': booking,
+        'form': form,
+    })
+
+@login_required
+def leave_review_tenant_view(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    if request.user != booking.property.owner:
+        return HttpResponse("У вас нет прав оставлять отзыв об этом жильце.", status=403)
+
+    if Review.objects.filter(booking=booking, review_type='tenant').exists():
+        return HttpResponse("Вы уже оставили отзыв об этом жильце.")
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.booking = booking
+            review.property = booking.property
+            review.author = request.user
+            review.to_user = booking.tenant
+            review.review_type = 'tenant'
+            review.save()
+            return redirect('profile_view')
+    else:
+        form = ReviewForm()
+
+    return render(request, 'booking/leave_review_tenant.html', {
+        'booking': booking,
+        'form': form,
+    })
+
+@login_required
+def leave_review_property_view(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    if request.user != booking.tenant:
+        return HttpResponse("У вас нет прав оставлять отзыв об этом объекте.", status=403)
+
+    if Review.objects.filter(booking=booking, review_type='property').exists():
+        return HttpResponse("Вы уже оставили отзыв об этом объекте.")
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.booking = booking
+            review.property = booking.property
+            review.author = request.user
+            review.to_user = None
+            review.review_type = 'property'
+            review.save()
+            return redirect('profile_view')
+    else:
+        form = ReviewForm()
+
+    return render(request, 'booking/leave_review_property.html', {
+        'booking': booking,
+        'form': form,
+    })

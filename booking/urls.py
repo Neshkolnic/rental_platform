@@ -15,6 +15,14 @@ urlpatterns = [
     path('property/<int:pk>/edit/', views.property_edit, name='property_edit'),
     path('calendar/edit/<int:property_id>/', views.calendar_edit, name='calendar_edit'),
 
+    path('booking/<int:booking_id>/review/landlord/', views.leave_review_landlord_view, name='leave_review_landlord'),
+    path('profile/', views.profile_view, name='profile_view'),
+    # Отзыв собственника об арендаторе (tenant)
+    path('booking/<int:booking_id>/review/tenant/', views.leave_review_tenant_view, name='leave_review_tenant'),
+
+    # Отзыв арендатора об объекте (property)
+    path('booking/<int:booking_id>/review/property/', views.leave_review_property_view, name='leave_review_property'),
+
     path('booking/<int:booking_id>/review/', leave_review_view, name='leave_review'),
     path('calendar/view/<int:property_id>/', views.calendar_view, name='calendar_view'),
     path('update-availability/<int:property_id>/<str:date_str>/', views.update_availability,

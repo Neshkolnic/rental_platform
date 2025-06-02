@@ -16,4 +16,25 @@
     <button type="submit">Сохранить</button>
 </form>
 
+<hr>
+
+<h3>Отзывы обо мне</h3>
+
+{% if reviews %}
+    <ul>
+    {% for review in reviews %}
+        <li>
+            <strong>Отзыв от {{ review.author.username }}</strong><br>
+            О недвижимости: {{ review.property.title }}<br>
+            Рейтинг: {{ review.rating }}<br>
+            Комментарий: {{ review.comment }}<br>
+            Дата: {{ review.created_at|date:"d.m.Y" }}
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Пока нет отзывов.</p>
+{% endif %}
+
+
 {% endblock %}
