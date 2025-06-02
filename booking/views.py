@@ -162,6 +162,7 @@ def booking_confirm_view(request, property_id):
             total_price=total_price,
             status=Booking.Status.PENDING
         )
+        schedule_review_reminder(booking.id, delay_seconds=3)
         return redirect('chat:chat_room', booking_id=booking.id)
 
     return render(request, 'booking/confirm.html', {
@@ -415,7 +416,7 @@ from .forms import ReviewForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-
+from booking.utils import schedule_review_reminder
 
 
 @login_required

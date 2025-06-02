@@ -6,6 +6,8 @@ import requests
 from datetime import date
 
 
+
+
 class User(AbstractUser):
     class Role(models.TextChoices):
         USER = 'user', 'User'
@@ -154,6 +156,9 @@ class Booking(models.Model):
         CANCELLED = 'cancelled', 'Cancelled'
         COMPLETED = 'completed', 'Completed'
 
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    review_reminder_sent = models.BooleanField(default=False)
+
     tenant = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='bookings')
     check_in_date = models.DateField()
@@ -178,20 +183,21 @@ class Booking(models.Model):
             raise ValidationError('This property is already booked for selected dates')
 
     def save(self, *args, **kwargs):
-        # Сохраняем старый статус для проверки изменения
         old_status = None
         if self.pk:
-            old = Booking.objects.filter(pk=self.pk).first()
-            if old:
-                old_status = old.status
+            old_booking = Booking.objects.filter(pk=self.pk).first()
+            if old_booking:
+                old_status = old_booking.status
 
-        self.full_clean()
         super().save(*args, **kwargs)
 
-        # Если статус изменился на COMPLETED — запустить уведомление
-        if old_status != self.status and self.status == Booking.Status.COMPLETED:
-            from booking.utils import schedule_review_reminder
+        # Если статус изменился на подтвержденный — отправить напоминание через 3 секунды (для теста)
+        if old_status != self.status and self.status == self.Status.CONFIRMED:
             schedule_review_reminder(self.id, delay_seconds=3)
+
+        # Если статус изменился на завершённый — отправить напоминание (для продакшена)
+        if old_status != self.status and self.status == self.Status.COMPLETED:
+            schedule_review_reminder(self.id, delay_seconds=3)  # delay можно убрать или сделать 0
 
 
 class Payment(models.Model):
