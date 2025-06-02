@@ -18,7 +18,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    avatar_url = models.CharField(max_length=512, blank=True, null=True)
+    avatar = models.BinaryField(blank=True, null=True)
     role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
     password = models.CharField(max_length=128, blank=True)
     is_verified = models.BooleanField(default=False)
