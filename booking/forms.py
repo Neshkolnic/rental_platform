@@ -98,3 +98,17 @@ class ReviewForm(forms.ModelForm):
             'rating': forms.NumberInput(attrs={'min': 1, 'max': 5}),
             'comment': forms.Textarea(attrs={'rows': 4}),
         }
+
+
+# forms.py
+
+from django import forms
+from .models import User
+
+class ProfileForm(forms.ModelForm):
+    avatar_file = forms.FileField(required=False, label="Фото (аватар)")
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone', 'avatar_file']
+

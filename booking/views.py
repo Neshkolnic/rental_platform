@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.decorators.csrf import csrf_exempt
@@ -16,7 +16,7 @@ from django.views.generic import CreateView
 from geopy.geocoders import Nominatim
 
 from .forms import UserRegisterForm, UserLoginForm, PropertyForm, AvailabilityCalendarForm
-from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking
+from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking, User
 
 
 def geocode_view(request):
@@ -439,3 +439,50 @@ def leave_review_view(request, booking_id):
         form = ReviewForm()
 
     return render(request, 'reviews/leave_review.html', {'form': form, 'booking': booking})
+
+
+
+from .forms import ProfileForm
+
+@login_required
+def profile_view(request):
+    user = request.user
+
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile_view')
+    else:
+        form = ProfileForm(instance=user)
+
+    return render(request, 'profile/profile.html', {'form': form})
+
+
+
+@login_required
+def profile_view(request):
+    user = request.user
+
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, request.FILES, instance=user)
+        if form.is_valid():
+            profile = form.save(commit=False)
+            avatar_file = form.cleaned_data.get('avatar_file')
+            if avatar_file:
+                profile.avatar = avatar_file.read()
+            profile.save()
+            return redirect('profile')  # имя из urls.py
+    else:
+        form = ProfileForm(instance=user)
+
+    return render(request, 'profile/profile.html', {'form': form})
+
+
+# ➕ Добавим avatar_view
+
+def avatar_view(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if user.avatar:
+        return HttpResponse(user.avatar, content_type='image/jpeg')  # или 'image/png'
+    raise Http404("Avatar not found")
