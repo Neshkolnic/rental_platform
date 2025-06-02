@@ -33,7 +33,6 @@ def send_review_reminder_message(booking_id):
     tenant = booking.tenant
     landlord = booking.property.owner
 
-    # Найти чат по бронированию или создать новый
     chat = Chat.objects.filter(booking=booking).first()
     if not chat:
         chat = Chat.objects.create(
@@ -45,14 +44,20 @@ def send_review_reminder_message(booking_id):
 
     system_user = get_system_user()
 
-    # Генерируем URL для оставления отзыва
-    review_url = reverse('leave_review', args=[booking_id])
-    full_review_url = f"http://127.0.0.1:8000{review_url}"  # Замените yourdomain.com на реальный домен
+    url_landlord = reverse('leave_review_landlord', args=[booking_id])
+    full_url_landlord = f"http://127.0.0.1:8000{url_landlord}"
+
+    url_tenant = reverse('leave_review_tenant', args=[booking_id])
+    full_url_tenant = f"http://127.0.0.1:8000{url_tenant}"
+
+    url_property = reverse('leave_review_property', args=[booking_id])
+    full_url_property = f"http://127.0.0.1:8000{url_property}"
 
     message_text = (
-        "Ваше бронирование завершено! Пожалуйста, оставьте отзыв друг о друге.\n"
-        f"Арендатор, вы можете оценить собственника квартиры здесь: {full_review_url}\n"
-        f"Собственник, вы можете оценить арендатора здесь: {full_review_url}\n"
+        "Ваше бронирование завершено! Пожалуйста, оставьте отзывы друг о друге и об объекте.\n"
+        f"Арендатор, оставьте отзыв о собственнике здесь: {full_url_landlord}\n"
+        f"Собственник, оставьте отзыв об арендаторе здесь: {full_url_tenant}\n"
+        f"Арендатор, оставьте отзыв об объекте здесь: {full_url_property}\n"
         "Спасибо!"
     )
 
