@@ -1,8 +1,21 @@
-version: '3.8'
-
+# docker-compose.yml
 services:
   redis:
     image: redis:7
     container_name: redis-dev
     ports:
       - "6379:6379"
+
+  celery:
+    build:
+      context: .
+      dockerfile: Dockerfile.celery
+    container_name: celery-worker
+    command: celery -A rental_platform worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0

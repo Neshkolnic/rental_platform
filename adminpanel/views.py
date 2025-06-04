@@ -176,6 +176,7 @@ def assign_support(request, chat_id):
 
 
 @login_required
+@login_required
 def support_chat_detail(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id)
     if not chat.is_support_chat:
@@ -183,23 +184,19 @@ def support_chat_detail(request, chat_id):
 
     user = request.user
 
-    # Проверяем что пользователь является назначенным оператором
+    # Проверяем, что пользователь — оператор
     assignment = getattr(chat, 'support_assignment', None)
     if not assignment or assignment.support != user:
         return HttpResponseForbidden("У вас нет доступа к этому чату.")
 
     messages_list = chat.messages.all().order_by('created_at')
 
-    if request.method == 'POST':
-        content = request.POST.get('message', '').strip()
-        if content:
-            chat.messages.create(sender=user, content=content)
-            return redirect('adminpanel:support_chat_detail', chat_id=chat.id)
-
     return render(request, 'adminpanel/support_chat_detail.html', {
         'chat': chat,
+        'room_name': f'support_{chat.id}',  # <-- для WebSocket URL
         'messages': messages_list,
     })
+
 
 
 @login_required

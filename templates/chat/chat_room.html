@@ -1,157 +1,52 @@
-<!-- chat/templates/chat/chat_room.html -->
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Чат для бронирования #{{ booking.id }}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .chat-container {
-            width: 80%;
-            margin: 0 auto;
-            padding-top: 20px;
-        }
-        .message-list {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-        .message-item {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-        }
-        .message-tenant {
-            background-color: #d9f7be;
-            text-align: left;
-        }
-        .message-landlord {
-            background-color: #f0f2f5;
-            text-align: right;
-        }
-        .message-system {
-            background-color: #f8d7da; /* светло-красный фон */
-            color: #721c24; /* темно-красный текст */
-            font-style: italic;
-            text-align: center;
-        }
-        .message-text {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 8px;
-        }
-        .message-form {
-            display: flex;
-            flex-direction: column;
-            margin-top: 20px;
-        }
-        textarea {
-            padding: 10px;
-            font-size: 16px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            width: 100%;
-            height: 100px;
-            resize: none;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            font-size: 16px;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
-</head>
-<body>
+<!-- Вставить в шаблон чата и поддержки: -->
 
-<div class="chat-container">
-    <h1>Чат для бронирования #{{ booking.id }}</h1>
-    <p>Арендатор: {{ booking.tenant.username }}</p>
-    <p>Недвижимость: {{ booking.property.title }}</p>
-    <p>Даты бронирования: с {{ booking.check_in_date }} по {{ booking.check_out_date }}</p>
-
-    <h2>Сообщения</h2>
-    <ul class="message-list">
-        {% for message in messages %}
-            {% if message.sender.email == 'no-reply@bookingapp.com' %}
-                <li class="message-item message-system">
-                    <div class="message-text">
-                        <p>{{ message.content|linebreaks }}</p>
-                        <small>Отправлено: {{ message.created_at|date:"d M Y H:i" }}</small>
-                    </div>
-                </li>
-            {% else %}
-                <li class="message-item {% if message.sender == booking.tenant %}message-tenant{% else %}message-landlord{% endif %}">
-                    <div class="message-text">
-                        <strong>{{ message.sender.username }}</strong>:
-                        <p>{{ message.content|linebreaks }}</p>
-                        <small>Отправлено: {{ message.created_at|date:"d M Y H:i" }}</small>
-                    </div>
-                </li>
-            {% endif %}
-        {% endfor %}
-    </ul>
-
-    <!-- Форма для отправки нового сообщения -->
-    <form method="POST" class="message-form">
-        {% csrf_token %}
-        <textarea name="message" placeholder="Введите ваше сообщение..." required></textarea>
-        <button type="submit">Отправить</button>
-    </form>
+<div id="chat-log">
+  {% for msg in messages %}
+    <div><strong>{{ msg.sender.username }}</strong>: {{ msg.content }} <small>{{ msg.created_at|date:"d M Y H:i" }}</small></div>
+  {% endfor %}
 </div>
 
-</body>
-</html>
+<input id="chat-message-input" type="text" autocomplete="off" placeholder="Введите сообщение" />
+<button id="chat-message-submit">Отправить</button>
 
 <script>
-    const bookingId = "{{ booking.id }}";
-    const user = "{{ request.user.username }}";
+  {% if chat.booking %}
+    const roomName = '{{ booking.id }}';
+    const wsUrl = `ws://${window.location.host}/ws/chat/${roomName}/`;
+  {% else %}
+    const roomName = '{{ chat.id }}';
+    const wsUrl = `ws://${window.location.host}/ws/support/${roomName}/`;
+  {% endif %}
 
-    const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + bookingId + '/'
-    );
+  const chatSocket = new WebSocket(wsUrl);
 
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        const messageList = document.querySelector('.message-list');
-        const newMessage = document.createElement('li');
-        newMessage.classList.add('message-item');
+  chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const chatLog = document.getElementById('chat-log');
+    const messageEl = document.createElement('div');
+    messageEl.innerHTML = `<strong>${data.sender}</strong>: ${data.message} <small>${data.created_at}</small>`;
+    chatLog.appendChild(messageEl);
+  };
 
-        if (data.sender_email === "no-reply@bookingapp.com") {
-            newMessage.classList.add('message-system');
-        } else if (data.sender === "{{ booking.tenant.username }}") {
-            newMessage.classList.add('message-tenant');
-        } else {
-            newMessage.classList.add('message-landlord');
-        }
+  chatSocket.onclose = function(e) {
+    console.error('Chat socket closed unexpectedly');
+  };
 
-        newMessage.innerHTML = `
-            <div class="message-text">
-                ${data.sender_email === "no-reply@bookingapp.com" ? '' : `<strong>${data.sender}</strong>:`}
-                <p>${data.message}</p>
-                <small>Отправлено: ${data.created_at}</small>
-            </div>
-        `;
-        messageList.appendChild(newMessage);
-    };
+  const input = document.getElementById('chat-message-input');
+  input.focus();
 
-    document.querySelector('.message-form').onsubmit = function(e) {
-        e.preventDefault();
-        const messageInput = document.querySelector('textarea[name="message"]');
-        const message = messageInput.value;
+  input.addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
 
-        chatSocket.send(JSON.stringify({
-            'message': message
-        }));
-        messageInput.value = '';
-    };
+  document.getElementById('chat-message-submit').onclick = sendMessage;
+
+  function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    chatSocket.send(JSON.stringify({'message': message}));
+    input.value = '';
+  }
 </script>

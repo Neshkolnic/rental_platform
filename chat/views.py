@@ -10,7 +10,6 @@ def chat_room_view(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
 
     chat = Chat.objects.filter(booking=booking).first()
-
     if not chat:
         chat = Chat.objects.create(
             booking=booking,
@@ -26,7 +25,6 @@ def chat_room_view(request, booking_id):
         'booking': booking,
     })
 
-
 @login_required
 def chat_list_view(request):
     user = request.user
@@ -40,33 +38,14 @@ from django.http import HttpResponseForbidden
 
 @login_required
 def support_chat_view(request):
-    # Получаем или создаём чат поддержки для текущего пользователя
-    chat, created = Chat.objects.get_or_create(
+    chat, _ = Chat.objects.get_or_create(
         is_support_chat=True,
         tenant=request.user,
         defaults={'booking': None, 'landlord': None}
     )
 
-    if request.method == 'POST':
-        content = request.POST.get('message', '').strip()
-        if content:
-            # Если чат был закрыт, открываем и сбрасываем назначение саппорта
-            if chat.is_closed:
-                chat.is_closed = False
-                chat.save()
-
-                # Удаляем назначение оператора (если есть)
-                from adminpanel.models import SupportAssignment
-                SupportAssignment.objects.filter(chat=chat).delete()
-
-            Message.objects.create(
-                chat=chat,
-                sender=request.user,
-                content=content
-            )
-            return redirect('chat:support_chat')
-
     messages = chat.messages.all().order_by('created_at')
+
     return render(request, 'chat/chat_support.html', {
         'chat': chat,
         'messages': messages,

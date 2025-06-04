@@ -1,67 +1,52 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>Чат с поддержкой</h2>
+<!-- Вставить в шаблон чата и поддержки: -->
 
-<style>
-  .chat-container {
-    border: 1px solid #ccc;
-    padding: 15px;
-    max-height: 400px;
-    overflow-y: auto;
-    background: #f9f9f9;
-    margin-bottom: 20px;
-  }
-  .message {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    max-width: 70%;
-    clear: both;
-  }
-  .message .sender {
-    font-weight: bold;
-    margin-bottom: 3px;
-  }
-  .message.support {
-    background-color: #d1ecf1;
-    float: left;
-  }
-  .message.user {
-    background-color: #c3e6cb;
-    float: right;
-  }
-  .timestamp {
-    font-size: 0.8em;
-    color: #666;
-    margin-top: 2px;
-  }
-  form input[type="text"] {
-    width: 80%;
-    padding: 8px;
-    margin-right: 10px;
-  }
-  form button {
-    padding: 8px 16px;
-  }
-</style>
-
-<div class="chat-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="message {% if message.sender.is_staff %}support{% else %}user{% endif %}">
-        <div class="sender">{{ message.sender.username }}</div>
-        <div class="content">{{ message.content|linebreaksbr }}</div>
-        <div class="timestamp">{{ message.created_at|date:"d M Y, H:i" }}</div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p>Сообщений пока нет.</p>
-  {% endif %}
+<div id="chat-log">
+  {% for msg in messages %}
+    <div><strong>{{ msg.sender.username }}</strong>: {{ msg.content }} <small>{{ msg.created_at|date:"d M Y H:i" }}</small></div>
+  {% endfor %}
 </div>
 
-<form method="post" autocomplete="off">
-  {% csrf_token %}
-  <input type="text" name="message" placeholder="Введите сообщение..." required autofocus>
-  <button type="submit">Отправить</button>
-</form>
-{% endblock %}
+<input id="chat-message-input" type="text" autocomplete="off" placeholder="Введите сообщение" />
+<button id="chat-message-submit">Отправить</button>
+
+<script>
+  {% if chat.booking %}
+    const roomName = '{{ booking.id }}';
+    const wsUrl = `ws://${window.location.host}/ws/chat/${roomName}/`;
+  {% else %}
+    const roomName = '{{ chat.id }}';
+    const wsUrl = `ws://${window.location.host}/ws/support/${roomName}/`;
+  {% endif %}
+
+  const chatSocket = new WebSocket(wsUrl);
+
+  chatSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const chatLog = document.getElementById('chat-log');
+    const messageEl = document.createElement('div');
+    messageEl.innerHTML = `<strong>${data.sender}</strong>: ${data.message} <small>${data.created_at}</small>`;
+    chatLog.appendChild(messageEl);
+  };
+
+  chatSocket.onclose = function(e) {
+    console.error('Chat socket closed unexpectedly');
+  };
+
+  const input = document.getElementById('chat-message-input');
+  input.focus();
+
+  input.addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') {
+      sendMessage();
+    }
+  });
+
+  document.getElementById('chat-message-submit').onclick = sendMessage;
+
+  function sendMessage() {
+    const message = input.value.trim();
+    if (!message) return;
+    chatSocket.send(JSON.stringify({'message': message}));
+    input.value = '';
+  }
+</script>
