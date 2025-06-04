@@ -6,7 +6,7 @@ import requests
 from datetime import date
 
 
-
+from django.core.files.storage import default_storage
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -18,7 +18,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    avatar = models.BinaryField(blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
     password = models.CharField(max_length=128, blank=True)
     is_verified = models.BooleanField(default=False)
@@ -27,6 +27,23 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
+
+    def save(self, *args, **kwargs):
+        try:
+            old = User.objects.get(pk=self.pk)
+        except User.DoesNotExist:
+            old = None
+
+        super().save(*args, **kwargs)
+
+        if old and old.avatar and old.avatar != self.avatar:
+            if default_storage.exists(old.avatar.path):
+                default_storage.delete(old.avatar.path)
+
+    def delete(self, *args, **kwargs):
+        if self.avatar and default_storage.exists(self.avatar.path):
+            default_storage.delete(self.avatar.path)
+        super().delete(*args, **kwargs)
 
     # в модели User добавь метод
 
