@@ -1,77 +1,38 @@
-{% extends 'base.html' %}
-{% block content %}
-<h2>Чат с поддержкой</h2>
+<h2>Чат поддержки #{{ chat.id }}</h2>
 
-<style>
-  .chat-container {
-    border: 1px solid #ccc;
-    padding: 15px;
-    max-height: 400px;
-    overflow-y: auto;
-    background: #f9f9f9;
-    margin-bottom: 20px;
-  }
-  .message {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    max-width: 70%;
-    clear: both;
-  }
-  .message .sender {
-    font-weight: bold;
-    margin-bottom: 3px;
-  }
-  .message.support {
-    background-color: #d1ecf1;
-    float: left;
-  }
-  .message.user {
-    background-color: #c3e6cb;
-    float: right;
-  }
-  .timestamp {
-    font-size: 0.8em;
-    color: #666;
-    margin-top: 2px;
-    clear: both;
-  }
-  form input[type="text"] {
-    width: 80%;
-    padding: 8px;
-    margin-right: 10px;
-  }
-  form button {
-    padding: 8px 16px;
-  }
-</style>
+<textarea id="chat-log" cols="100" rows="20" readonly>
+{% for msg in messages %}
+{{ msg.sender }}: {{ msg.content }}
+{% endfor %}
+</textarea><br>
 
-<div class="chat-container" id="chat-container">
-  {% if messages %}
-    {% for message in messages %}
-      <div class="message {% if message.sender.is_support %}support{% else %}user{% endif %}">
-        <div class="sender">{{ message.sender.get_full_name|default:message.sender.username }}</div>
-        <div class="content">{{ message.content|linebreaksbr }}</div>
-        <div class="timestamp">{{ message.created_at|date:"d M Y, H:i" }}</div>
-      </div>
-    {% endfor %}
-  {% else %}
-    <p>Сообщений пока нет.</p>
-  {% endif %}
-</div>
-
-<form method="post" autocomplete="off">
-  {% csrf_token %}
-  <input type="text" name="message" placeholder="Введите сообщение..." required autofocus autocomplete="off">
-  <button type="submit">Отправить</button>
-</form>
+<input id="chat-message-input" type="text" size="100">
+<button id="chat-message-submit">Отправить</button>
 
 <script>
-  // Скролл к последнему сообщению при загрузке страницы
-  const chatContainer = document.getElementById('chat-container');
-  if (chatContainer) {
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
-</script>
+    // Важно: сюда передаём chat.id, который - число (без приставки support_)
+    const roomName = "{{ chat.id }}";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/support/' + roomName + '/'
+    );
 
-{% endblock %}
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        document.querySelector('#chat-log').value += (data.username + ": " + data.message + '\n');
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('WebSocket закрыт неожиданно');
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
+        const input = document.querySelector('#chat-message-input');
+        const message = input.value;
+        if (message.trim() !== '') {
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            input.value = '';
+        }
+    };
+</script>
