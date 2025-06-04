@@ -25,7 +25,9 @@
     {% for review in reviews %}
         <li>
             <strong>Отзыв от {{ review.author.username }}</strong><br>
-            О недвижимости: {{ review.property.title }}<br>
+            {% if review.property %}
+                О недвижимости: {{ review.property.title }}<br>
+            {% endif %}
             Рейтинг: {{ review.rating }}<br>
             Комментарий: {{ review.comment }}<br>
             Дата: {{ review.created_at|date:"d.m.Y" }}
@@ -35,6 +37,5 @@
 {% else %}
     <p>Пока нет отзывов.</p>
 {% endif %}
-
 
 {% endblock %}

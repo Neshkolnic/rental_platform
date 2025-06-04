@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Оставить отзыв о недвижимости</h2>
+
+<p><strong>Объект:</strong> {{ booking.property.title }}</p>
+<p><strong>Арендодатель:</strong> {{ booking.property.owner.get_full_name }}</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Отправить отзыв</button>
+</form>
+
+{% endblock %}

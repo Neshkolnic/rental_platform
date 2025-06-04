@@ -106,9 +106,9 @@ from django import forms
 from .models import User
 
 class ProfileForm(forms.ModelForm):
-    avatar_file = forms.FileField(required=False, label="Фото (аватар)")
+    # avatar_file = forms.FileField(required=False, label="Фото (аватар)")
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'avatar_file']
+        fields = ['first_name', 'last_name', 'phone', 'avatar']
 
