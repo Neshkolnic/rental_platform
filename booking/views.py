@@ -17,7 +17,7 @@ from django.views.generic import CreateView
 from geopy.geocoders import Nominatim
 
 from .forms import UserRegisterForm, UserLoginForm, PropertyForm, AvailabilityCalendarForm
-from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking, User
+from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking, User, Message
 
 
 def geocode_view(request):
@@ -129,6 +129,8 @@ class PropertyCreateView(CreateView):
         return response
 
 
+from .forms import InitialMessageForm  # Импортируем новую форму
+
 @login_required
 def booking_confirm_view(request, property_id):
     property_obj = get_object_or_404(Property, pk=property_id)
@@ -149,29 +151,40 @@ def booking_confirm_view(request, property_id):
         return render(request, 'error.html', {'message': 'Дата выезда должна быть позже даты заезда.'})
 
     total_days = (check_out_date - check_in_date).days
-    if total_days <= 0:
-        return render(request, 'error.html', {'message': 'Продолжительность бронирования должна быть хотя бы 1 день.'})
-
     total_price = total_days * property_obj.price_per_night
 
     if request.method == 'POST':
-        booking = Booking.objects.create(
-            tenant=request.user,
-            property=property_obj,
-            check_in_date=check_in_date,
-            check_out_date=check_out_date,
-            total_price=total_price,
-            status=Booking.Status.PENDING
-        )
-        schedule_review_reminder.apply_async(args=[booking.id], countdown=3)
-        return redirect('chat:chat_room', booking_id=booking.id)
+        form = InitialMessageForm(request.POST)
+        if form.is_valid():
+            booking = Booking.objects.create(
+                tenant=request.user,
+                property=property_obj,
+                check_in_date=check_in_date,
+                check_out_date=check_out_date,
+                total_price=total_price,
+                status=Booking.Status.PENDING
+            )
+
+            Message.objects.create(
+                sender=request.user,
+                receiver=property_obj.owner,
+                booking=booking,
+                text=form.cleaned_data['message']
+            )
+
+            return redirect('chat:chat_room', booking_id=booking.id)
+    else:
+        form = InitialMessageForm()
 
     return render(request, 'booking/confirm.html', {
         'property': property_obj,
         'check_in': check_in,
         'check_out': check_out,
         'total_price': total_price,
+        'form': form
     })
+
+
 
 
 @login_required

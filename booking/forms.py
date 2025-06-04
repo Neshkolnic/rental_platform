@@ -112,3 +112,9 @@ class ProfileForm(forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'phone', 'avatar']
 
+class InitialMessageForm(forms.Form):
+    message = forms.CharField(
+        label="Сообщение владельцу",
+        widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Напишите сообщение владельцу...'}),
+        max_length=1000
+    )

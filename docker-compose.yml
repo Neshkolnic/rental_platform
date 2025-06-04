@@ -11,7 +11,7 @@ services:
       context: .
       dockerfile: Dockerfile.celery
     container_name: celery-worker
-    command: celery -A rental_platform worker -l info
+    command: celery -A core worker -l info
     volumes:
       - .:/app
     depends_on:
