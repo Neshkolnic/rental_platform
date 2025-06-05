@@ -38,7 +38,8 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = 'adminpanel/dashboard.html'
 
     def test_func(self):
-        return self.request.user.is_staff or getattr(self.request.user, 'is_support', False)
+        user = self.request.user
+        return user.is_staff or getattr(user, 'is_support', False) or user.is_superuser
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -48,18 +49,16 @@ class AdminDashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         assigned_ids = ModerationAssignment.objects.values_list('property_id', flat=True)
         context['unassigned_properties'] = Property.objects.exclude(id__in=assigned_ids).filter(is_approved=False)
 
-        if getattr(user, 'is_support', False):
-            # Чаты поддержки без оператора (через отсутствие SupportAssignment)
+        if getattr(user, 'is_support', False) or user.is_superuser:
             context['unassigned_chats'] = Chat.objects.filter(
                 is_support_chat=True,
-                support_assignment__isnull=True,   # Здесь: support_assignment, а не support_operator
+                support_assignment__isnull=True,
                 is_closed=False
             ).order_by('-created_at')
 
-            # Активные чаты текущего оператора (через SupportAssignment.support)
             context['my_support_chats'] = Chat.objects.filter(
                 is_support_chat=True,
-                support_assignment__support=user,  # Здесь
+                support_assignment__support=user,
                 is_closed=False
             ).order_by('-updated_at')
         else:
@@ -87,7 +86,8 @@ class ModerationListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
 @login_required
 def assign_moderator(request, property_id):
-    if not request.user.is_moderator:
+    user = request.user
+    if not (getattr(user, 'is_moderator', False) or user.is_superuser):
         return HttpResponseForbidden()
 
     property_obj = get_object_or_404(Property, id=property_id)
@@ -96,17 +96,22 @@ def assign_moderator(request, property_id):
         messages.error(request, "Это объявление уже назначено модератору.")
         return redirect('adminpanel:dashboard')
 
-    ModerationAssignment.objects.create(property=property_obj, moderator=request.user)
+    ModerationAssignment.objects.create(property=property_obj, moderator=user)
     messages.success(request, "Объявление назначено вам для модерации.")
     return redirect('adminpanel:my_assignments')
 
 
 @login_required
 def approve_property(request, assignment_id):
-    if not request.user.is_moderator:
+    user = request.user
+    if not (getattr(user, 'is_moderator', False) or user.is_superuser):
         return HttpResponseForbidden()
 
-    assignment = get_object_or_404(ModerationAssignment, id=assignment_id, moderator=request.user)
+    if user.is_superuser:
+        assignment = get_object_or_404(ModerationAssignment, id=assignment_id)
+    else:
+        assignment = get_object_or_404(ModerationAssignment, id=assignment_id, moderator=user)
+
     assignment.is_approved = True
     assignment.save()
 
@@ -120,40 +125,38 @@ def approve_property(request, assignment_id):
 
 @login_required
 def reject_property(request, assignment_id):
-    if not request.user.is_moderator:
+    user = request.user
+    assignment = get_object_or_404(ModerationAssignment, id=assignment_id)
+
+    if not (user.is_superuser or assignment.moderator == user):
         return HttpResponseForbidden()
 
-    assignment = get_object_or_404(ModerationAssignment, id=assignment_id, moderator=request.user)
     assignment.delete()
-
     messages.success(request, "Объявление отклонено.")
     return redirect('adminpanel:my_assignments')
 
 
 # ----------- ЧАТ ПОДДЕРЖКИ -------------
 class SupportListView(LoginRequiredMixin, ListView):
-    # убрал UserPassesTestMixin
     model = Chat
     template_name = 'adminpanel/support_list.html'
     context_object_name = 'chats'
 
-
     def test_func(self):
-        return self.request.user.is_support
-
+        return self.request.user.is_support or self.request.user.is_superuser
 
     def get_queryset(self):
-        # Чаты поддержки без назначенного оператора
         return Chat.objects.filter(
             is_support_chat=True,
             is_closed=False,
-            support_assignment__isnull=True  # Здесь исправлено
+            support_assignment__isnull=True
         ).order_by('-created_at')
 
 
 @login_required
 def assign_support(request, chat_id):
-    if not request.user.is_support:
+    user = request.user
+    if not (getattr(user, 'is_support', False) or user.is_superuser):
         return HttpResponseForbidden()
 
     chat_obj = get_object_or_404(Chat, id=chat_id)
@@ -161,7 +164,6 @@ def assign_support(request, chat_id):
         messages.error(request, "Чат уже закрыт.")
         return redirect('adminpanel:dashboard')
 
-    # Создаём назначение оператора, если его нет
     assignment, created = SupportAssignment.objects.get_or_create(
         chat=chat_obj,
         defaults={'support': request.user}
@@ -176,7 +178,6 @@ def assign_support(request, chat_id):
 
 
 @login_required
-@login_required
 def support_chat_detail(request, chat_id):
     chat = get_object_or_404(Chat, id=chat_id)
     if not chat.is_support_chat:
@@ -184,7 +185,6 @@ def support_chat_detail(request, chat_id):
 
     user = request.user
 
-    # Проверяем, что пользователь — оператор
     assignment = getattr(chat, 'support_assignment', None)
     if not assignment or assignment.support != user:
         return HttpResponseForbidden("У вас нет доступа к этому чату.")
@@ -193,32 +193,36 @@ def support_chat_detail(request, chat_id):
 
     return render(request, 'adminpanel/support_chat_detail.html', {
         'chat': chat,
-        'room_name': f'support_{chat.id}',  # <-- для WebSocket URL
+        'room_name': f'support_{chat.id}',
         'messages': messages_list,
     })
 
 
-
 @login_required
 def resolve_chat(request, chat_id):
-    if not request.user.is_support:
+    user = request.user
+    if not (getattr(user, 'is_support', False) or user.is_superuser):
         return HttpResponseForbidden()
 
     chat = get_object_or_404(Chat, id=chat_id)
     assignment = getattr(chat, 'support_assignment', None)
 
-    if not assignment or assignment.support != request.user:
+    # Для суперадмина можно пропустить проверку принадлежности чата
+    if not assignment and not user.is_superuser:
+        return HttpResponseForbidden()
+
+    if assignment and assignment.support != user and not user.is_superuser:
         return HttpResponseForbidden()
 
     chat.is_closed = True
     chat.save()
 
-    assignment.is_resolved = True
-    assignment.save()
+    if assignment:
+        assignment.is_resolved = True
+        assignment.save()
 
     messages.success(request, "Чат закрыт.")
     return redirect('adminpanel:dashboard')
-
 
 # ----------- МОИ НАЗНАЧЕНИЯ -------------
 class MyAssignmentsView(LoginRequiredMixin, TemplateView):
@@ -228,34 +232,44 @@ class MyAssignmentsView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        if user.is_moderator:
-            context['my_properties'] = ModerationAssignment.objects.filter(
-                moderator=user,
-                is_approved=False
-            )
+        if user.is_moderator or user.is_superuser:
+            # Для суперюзера показываем все назначения или только свои
+            if user.is_superuser:
+                context['my_properties'] = ModerationAssignment.objects.filter(is_approved=False)
+            else:
+                context['my_properties'] = ModerationAssignment.objects.filter(
+                    moderator=user,
+                    is_approved=False
+                )
 
-        if user.is_support:
-            context['my_chats'] = Chat.objects.filter(
-                support_assignment__support=user,  # Здесь исправлено
-                is_closed=False
-            )
+        if user.is_support or user.is_superuser:
+            if user.is_superuser:
+                context['my_chats'] = Chat.objects.filter(
+                    is_support_chat=True,
+                    is_closed=False
+                )
+            else:
+                context['my_chats'] = Chat.objects.filter(
+                    support_assignment__support=user,
+                    is_closed=False
+                )
 
         return context
 
 
 class SupportUnassignedListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Chat
-    template_name = 'adminpanel/support_unassigned_list.html'
+    template_name = 'adminpanel/support_list.html'
     context_object_name = 'chats'
 
     def test_func(self):
-        return self.request.user.is_support
+        user = self.request.user
+        return user.is_support or user.is_superuser
 
     def get_queryset(self):
-        # Возвращаем только необработанные чаты поддержки без оператора
         return Chat.objects.filter(
             is_support_chat=True,
-            support_assignment__isnull=True,  # Здесь
+            support_assignment__isnull=True,
             is_closed=False
         ).order_by('-created_at')
 
@@ -263,8 +277,7 @@ class SupportUnassignedListView(LoginRequiredMixin, UserPassesTestMixin, ListVie
 @login_required
 def assign_support_chat_to_self(request, chat_id):
     user = request.user
-    # Разрешаем назначать чат и саппортам, и администраторам (staff)
-    if not (user.is_support or user.is_staff):
+    if not (user.is_support or user.is_staff or user.is_superuser):
         messages.error(request, "У вас нет прав для назначения чата.")
         return redirect('adminpanel:support_unassigned_chats')
 
@@ -278,7 +291,6 @@ def assign_support_chat_to_self(request, chat_id):
         messages.error(request, "Чат уже назначен другому оператору.")
         return redirect('adminpanel:support_unassigned_chats')
 
-    # Назначаем оператора через SupportAssignment
     SupportAssignment.objects.update_or_create(
         chat=chat,
         defaults={'support': user, 'is_resolved': False}
