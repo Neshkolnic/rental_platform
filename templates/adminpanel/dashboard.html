@@ -18,7 +18,7 @@
 {% endif %}
 
 
-{% if user.is_support %}
+{% if user.is_support or user.is_superuser %}
     <h2>Неприсвоенные чаты поддержки</h2>
     {% if unassigned_chats %}
         <ul>

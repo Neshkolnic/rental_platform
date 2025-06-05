@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Мои задания</h1>
 
-{% if user.is_moderator %}
+{% if user.is_moderator or user.is_superuser %}
   <h2>Назначенные объявления</h2>
   {% if my_properties %}
     <ul>
@@ -22,14 +22,14 @@
   {% endif %}
 {% endif %}
 
-{% if user.is_support %}
+{% if user.is_support or user.is_superuser %}
   <h2>Назначенные чаты поддержки</h2>
   {% if my_chats %}
     <ul>
-      {% for assignment in my_chats %}
+      {% for chat in my_chats %}
         <li>
-          Чат #{{ assignment.chat.id }} — <a href="{% url 'adminpanel:support_chat_detail' assignment.chat.id %}">Открыть чат</a> |
-          <a href="{% url 'adminpanel:resolve_chat' assignment.chat.id %}">Отметить как решённый</a>
+          Чат #{{ chat.id }} — <a href="{% url 'adminpanel:support_chat_detail' chat.id %}">Открыть чат</a> |
+          <a href="{% url 'adminpanel:resolve_chat' chat.id %}">Отметить как решённый</a>
         </li>
       {% endfor %}
     </ul>
