@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'chat',
+    'blog',
 
     'channels',
     'adminpanel',
@@ -58,7 +59,9 @@ INSTALLED_APPS = [
     # Local apps
     'booking.apps.BookingConfig',
 
-    'multiupload'
+    'multiupload', # для загрузки многофайлов за раз
+    'ckeditor', #для редактора текста с форматированием
+    'ckeditor_uploader',
 ]
 
 
@@ -210,3 +213,37 @@ GEOCODING_TIMEOUT = 10
 
 # Добавьте ваш ключ API Яндекс.Карт
 YANDEX_MAPS_API_KEY = '86725852-6abe-4f51-bde5-05c185b45eb3'
+
+# Указывает, куда сохраняются файлы из редактора (относительно MEDIA_ROOT)
+CKEDITOR_UPLOAD_PATH = "blog_images/"
+
+# Необязательно, но желательно:
+CKEDITOR_IMAGE_BACKEND = "pillow"
+
+# Какие кнопки есть в редакторе
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': [
+            {'name': 'document', 'items': ['Source', '-', 'Templates']},
+            {'name': 'clipboard', 'items': ['Cut', 'Copy', 'Paste', 'PasteText', 'PasteFromWord', '-', 'Undo', 'Redo']},
+            {'name': 'editing', 'items': ['Find', 'Replace', '-', 'SelectAll']},
+            {'name': 'basicstyles', 'items': ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat']},
+            {'name': 'paragraph', 'items': ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent',
+                                           '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock',
+                                           '-', 'Blockquote', 'HorizontalRule']},
+            {'name': 'links', 'items': ['Link', 'Unlink', 'Anchor']},
+            {'name': 'insert', 'items': ['Image', 'Table', 'EmojiPanel', 'SpecialChar']},
+            {'name': 'styles', 'items': ['Styles', 'Format', 'Font', 'FontSize']},
+            {'name': 'colors', 'items': ['TextColor', 'BGColor']},
+            {'name': 'tools', 'items': ['Maximize', 'ShowBlocks']},
+            {'name': 'about', 'items': ['About']},
+        ],
+        'height': 400,
+        'width': '100%',
+        'allowedContent': True,
+
+    }
+}
+
+
+

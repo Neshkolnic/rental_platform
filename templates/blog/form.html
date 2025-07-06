@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>{{ action }} пост</h1>
+  <form method="post">
+  {% csrf_token %}
+  {{ form.media }}  {# 👈 Обязательно, чтобы подключить JS и CSS редактора #}
+  {{ form.as_p }}
+  <button type="submit">{{ action }}</button>
+</form>
+  <a href="{% url 'blog_index' %}">Назад к блогу</a>
+{% endblock %}
