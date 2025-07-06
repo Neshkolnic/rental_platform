@@ -44,5 +44,10 @@ urlpatterns = [
              template_name='registration/password_reset_complete.html'
          ),
          name='password_reset_complete'),
+
+    path('admin/', admin.site.urls),
+    path('blog/', include('blog.urls')),
+    path('ckeditor/', include('ckeditor_uploader.urls')),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
