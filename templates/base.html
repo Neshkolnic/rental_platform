@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Сервис бронирования{% endblock %}</title>
+    {% block meta %}{% endblock %}
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; }
@@ -13,6 +15,7 @@
         .btn { background: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; }
         .errors { color: red; margin: 10px 0; }
     </style>
+    <link rel="stylesheet" href="{% static 'css/blog.css' %}">
 </head>
 <body>
     <div class="container">

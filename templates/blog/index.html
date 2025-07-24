@@ -1,20 +1,64 @@
-<h1>Блог</h1>
+{% extends "base.html" %}
 
-{% for post in posts %}
-  <h2>{{ post.title }}</h2>
-  <div>{{ post.content|safe }}</div>
+{% block title %}
+  Блог – Rental Platform
+{% endblock %}
 
-  <small>Автор: {{ post.author }}</small>
+{% block meta %}
+  <meta name="description" content="Последние статьи блога. Читайте новые публикации.">
+{% endblock %}
 
-  {% if user.is_authenticated and user.role in 'blog_editor admin' %}
-    <p>
-      <a href="{% url 'blog_edit' post.id %}">Редактировать</a> |
-      <a href="{% url 'blog_delete' post.id %}">Удалить</a>
-    </p>
-  {% endif %}
-  <hr>
+{% block content %}
+  <h1>Блог</h1>
+
+<form method="get">
+    <input type="text" name="q" value="{{ query|default_if_none:'' }}" placeholder="Поиск по заголовкам...">
+    <button type="submit">Найти</button>
+</form>
+<br>
+<div class="blog-list">
+{% for post in page_obj %}
+  <div class="blog-card">
+    {% if post.image %}
+      <img src="{{ post.image.url }}" alt="{{ post.title }}">
+    {% endif %}
+
+    {% if post.slug %}
+      <h2><a href="{% url 'blog_detail' post.slug %}">{{ post.title }}</a></h2>
+    {% else %}
+      <h2>{{ post.title }}</h2>
+    {% endif %}
+
+    <div class="excerpt">{{ post.content|truncatewords:5|safe }}</div>
+    <div class="post-meta">
+      <span>{{ post.created_at|date:"d.m.Y H:i" }}</span>
+      <span>Автор: {{ post.author }}</span>
+    </div>
+  </div>
+{% empty %}
+  <p>Постов пока нет.</p>
 {% endfor %}
+
+</div>
+
+
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?q={{ query }}&page=1">« Первая</a>
+    <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}">‹Назад</a>
+  {% endif %}
+
+  <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+
+  {% if page_obj.has_next %}
+    <a href="?{% if query %}q={{ query }}&{% endif %}page={{ page_obj.next_page_number }}">Вперед›</a>
+    <a href="?q={{ query }}&page={{ page_obj.paginator.num_pages }}">Последняя»</a>
+  {% endif %}
+</div>
 
 {% if user.is_authenticated and user.role == 'blog_editor' %}
   <a href="{% url 'blog_create' %}">Создать пост</a>
 {% endif %}
+
+
+{% endblock %}
