@@ -12,4 +12,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
-CMD ["celery", "-A", "rental_platform", "worker", "-l", "info"]
+# Команда Celery
+CMD ["celery", "-A", "core", "worker", "-l", "info"]

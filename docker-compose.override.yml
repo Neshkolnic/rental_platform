@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=True
+
+  celery:
+    command: celery -A core worker -l info --concurrency=1
+    volumes:
+      - .:/app
+
+  celery-beat:
+    command: celery -A core beat -l info
+    volumes:
+      - .:/app

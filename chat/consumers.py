@@ -6,8 +6,16 @@ from booking.models import Booking
 from django.contrib.auth import get_user_model
 from channels.db import database_sync_to_async
 from adminpanel.models import SupportAssignment
+from chat.tasks import send_system_notification
+from chat.tasks import send_system_notification
+from chat.models import Chat
+from channels.db import database_sync_to_async
 
-User = get_user_model()
+from chat.tasks import send_system_notification
+
+from chat.tasks import send_system_notification
+from chat.models import Chat
+from channels.db import database_sync_to_async
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -16,6 +24,50 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
+
+        user = self.scope['user']
+        if not user.is_authenticated:
+            return
+
+        # Определяем текст уведомления
+        text = await self.get_notification_text(user)
+
+        # Запускаем задачу через 3 секунды
+        if text:
+            send_system_notification.apply_async(args=[self.booking_id, text], countdown=3)
+
+    @database_sync_to_async
+    def get_notification_text(self, user):
+        """
+        Определяет, какое уведомление отправить пользователю.
+        """
+        try:
+            chat = Chat.objects.get(booking_id=self.booking_id)
+        except Chat.DoesNotExist:
+            return None
+
+        if chat.landlord == user:
+            return "Пожалуйста, оцените арендатора."
+        elif chat.tenant == user:
+            return "Пожалуйста, оцените жильё."
+        return None
+
+
+    @database_sync_to_async
+    def get_notification_text(self, user):
+        """
+        Определяет, какое уведомление отправить пользователю.
+        """
+        try:
+            chat = Chat.objects.get(booking_id=self.booking_id)
+        except Chat.DoesNotExist:
+            return None
+
+        if chat.landlord == user:
+            return "Пожалуйста, оцените арендатора."
+        elif chat.tenant == user:
+            return "Пожалуйста, оцените жильё."
+        return None
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
