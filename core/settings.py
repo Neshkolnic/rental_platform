@@ -133,6 +133,9 @@ DATABASES = {
     }
 }
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

@@ -1,10 +1,12 @@
-# booking/utils.py (или chat/utils.py)
+# booking/utils.py
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.urls import reverse
 from chat.models import Chat, Message
 from booking.models import Booking
 from django.contrib.auth import get_user_model
+import requests
+import os
 
 User = get_user_model()
 
@@ -56,10 +58,8 @@ def send_review_reminder_message(booking_id):
         f"Арендатор, оставьте отзыв об объекте здесь: http://127.0.0.1:8000{url_property}"
     )
 
-    # Создаем сообщение от системного юзера
     msg = Message.objects.create(chat=chat, sender=system_user, content=message_text)
 
-    # Отправляем уведомление в WebSocket группу
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'chat_{booking_id}', {
@@ -69,3 +69,37 @@ def send_review_reminder_message(booking_id):
             'created_at': msg.created_at.strftime('%d %b %Y %H:%M'),
         }
     )
+
+    telegram_message = (
+        "📢 Ваше бронирование завершено!\n\n"
+        "Пожалуйста, оставьте отзывы:\n"
+        f"👤 О владельце: http://127.0.0.1:8000{url_landlord}\n"
+        f"🏠 Об объекте: http://127.0.0.1:8000{url_property}\n"
+        f"👤 О арендаторе (для владельца): http://127.0.0.1:8000{url_tenant}"
+    )
+
+    if tenant.telegram_id:
+        send_telegram_notification(tenant.telegram_id, telegram_message)
+
+    if landlord.telegram_id:
+        send_telegram_notification(landlord.telegram_id, telegram_message)
+
+
+def send_telegram_notification(telegram_id, message):
+    token = os.getenv("TELEGRAM_BOT_TOKEN")  # Бот-токен должен быть в переменных окружения
+    if not token:
+        print("TELEGRAM_BOT_TOKEN не найден в переменных окружения.")
+        return
+
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        'chat_id': telegram_id,
+        'text': message,
+        'parse_mode': 'HTML'
+    }
+
+    try:
+        response = requests.post(url, data=payload, timeout=5)
+        response.raise_for_status()
+    except Exception as e:
+        print(f"Ошибка при отправке Telegram-сообщения: {e}")

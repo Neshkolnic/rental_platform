@@ -106,11 +106,16 @@ from django import forms
 from .models import User
 
 class ProfileForm(forms.ModelForm):
+    telegram_id = forms.CharField(
+        required=False,
+        label='Telegram ID',
+        help_text='Скопируйте ваш Telegram ID из бота и вставьте сюда, чтобы получать уведомления.'
+    )
     # avatar_file = forms.FileField(required=False, label="Фото (аватар)")
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'avatar']
+        fields = ['first_name', 'last_name', 'phone', 'avatar','telegram_id']
 
 class InitialMessageForm(forms.Form):
     message = forms.CharField(
