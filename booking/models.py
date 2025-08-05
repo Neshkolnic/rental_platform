@@ -25,6 +25,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     is_moderator = models.BooleanField(default=False)
     is_support = models.BooleanField(default=False)
+    telegram_id = models.CharField(max_length=50, blank=True, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']

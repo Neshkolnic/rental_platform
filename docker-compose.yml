@@ -72,5 +72,16 @@ services:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
 
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: telegram-bot
+    environment:
+      - TELEGRAM_BOT_TOKEN=8055907550:AAERRvApS3ThPUjR15Mg4fVnXe5qA8s_cNg
+    depends_on:
+      - redis
+      - db
+
 volumes:
   postgres_data:

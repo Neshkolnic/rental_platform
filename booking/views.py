@@ -165,6 +165,14 @@ def booking_confirm_view(request, property_id):
                 status=Booking.Status.PENDING
             )
 
+            from .utils import send_telegram_notification  # импорт в начале файла лучше
+
+            if property_obj.owner.telegram_id:
+                send_telegram_notification(
+                    telegram_id=property_obj.owner.telegram_id,
+                    message=f"Новая бронь от {request.user.username} на даты {check_in} - {check_out}."
+                )
+
             Message.objects.create(
                 sender=request.user,
                 receiver=property_obj.owner,

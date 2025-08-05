@@ -3,6 +3,17 @@
 {% block content %}
 <h2>Профиль</h2>
 
+<!-- 🔹 Инструкция для Telegram ID -->
+<div style="background-color: #f8f8f8; padding: 15px; border: 1px solid #ccc; margin-bottom: 20px;">
+    <p><strong>Хотите получать уведомления в Telegram?</strong></p>
+    <ol>
+        <li>Откройте бота <a href="https://t.me/YOUR_BOT_USERNAME" target="_blank">@your_bot_username</a> в Telegram и нажмите <strong>Start</strong>.</li>
+        <li>Бот отправит вам ваш Telegram ID.</li>
+        <li>Скопируйте его и вставьте в поле <strong>Telegram ID</strong> ниже.</li>
+        <li>Нажмите "Сохранить".</li>
+    </ol>
+</div>
+
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     
