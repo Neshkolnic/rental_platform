@@ -194,6 +194,7 @@ class Booking(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    deposit_paid = models.BooleanField(default=False)
 
     def clean(self):
         if self.check_in_date >= self.check_out_date:
