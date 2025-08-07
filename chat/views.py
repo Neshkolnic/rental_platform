@@ -3,19 +3,29 @@ from .models import Chat, Message
 from booking.models import Booking
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.http import HttpResponse
 
 
 @login_required
 def chat_room_view(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id)
 
-    chat = Chat.objects.filter(booking=booking).first()
-    if not chat:
-        chat = Chat.objects.create(
-            booking=booking,
-            tenant=booking.tenant,
-            landlord=booking.property.owner
-        )
+    # Проверяем, что пользователь — арендатор или владелец объекта
+    if booking.tenant != request.user and booking.property.owner != request.user:
+        return HttpResponse("Нет доступа", status=403)
+
+    # Проверяем, что предоплата внесена
+    if not booking.deposit_paid:
+        return HttpResponse("Чат доступен только после оплаты предоплаты.", status=403)
+
+    # Получаем или создаем чат для этого бронирования
+    chat, created = Chat.objects.get_or_create(
+        booking=booking,
+        defaults={
+            'tenant': booking.tenant,
+            'landlord': booking.property.owner
+        }
+    )
 
     messages = chat.messages.all().order_by('created_at')
 
@@ -24,7 +34,6 @@ def chat_room_view(request, booking_id):
         'messages': messages,
         'booking': booking,
     })
-
 @login_required
 def chat_list_view(request):
     user = request.user

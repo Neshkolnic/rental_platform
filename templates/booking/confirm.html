@@ -4,8 +4,10 @@
     <p>Вы бронируете: <strong>{{ property.title }}</strong></p>
     <p>Даты: <strong>{{ check_in }}</strong> – <strong>{{ check_out }}</strong></p>
     <p>Итоговая цена: <strong>{{ total_price }} ₽</strong></p>
+<p>Предоплата (10%): <strong>{{ deposit }} ₽</strong></p>
 
-    {{ form.as_p }}
+{{ form.as_p }}
 
-    <button type="submit">Подтвердить и отправить сообщение</button>
+<button type="submit">Создать бронь и перейти к оплате</button>
+
 </form>

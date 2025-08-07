@@ -131,6 +131,15 @@ class PropertyCreateView(CreateView):
 
 from .forms import InitialMessageForm  # Импортируем новую форму
 
+from django.shortcuts import redirect
+from django.urls import reverse
+
+from decimal import Decimal
+from datetime import date
+from django.shortcuts import get_object_or_404, render, redirect
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def booking_confirm_view(request, property_id):
     property_obj = get_object_or_404(Property, pk=property_id)
@@ -151,7 +160,15 @@ def booking_confirm_view(request, property_id):
         return render(request, 'error.html', {'message': 'Дата выезда должна быть позже даты заезда.'})
 
     total_days = (check_out_date - check_in_date).days
-    total_price = total_days * property_obj.price_per_night
+
+    # Предполагается, что property_obj.price_per_night — Decimal или float
+    # Если float — конвертируем в Decimal для точности вычислений
+    price_per_night = property_obj.price_per_night
+    if not isinstance(price_per_night, Decimal):
+        price_per_night = Decimal(str(price_per_night))
+
+    total_price = Decimal(total_days) * price_per_night
+    deposit = total_price * Decimal('0.10')  # 10% предоплата
 
     if request.method == 'POST':
         form = InitialMessageForm(request.POST)
@@ -162,15 +179,16 @@ def booking_confirm_view(request, property_id):
                 check_in_date=check_in_date,
                 check_out_date=check_out_date,
                 total_price=total_price,
+                deposit_paid=False,  # Пока предоплата не оплачена
                 status=Booking.Status.PENDING
             )
 
-            from .utils import send_telegram_notification  # импорт в начале файла лучше
+            from .utils import send_telegram_notification
 
             if property_obj.owner.telegram_id:
                 send_telegram_notification(
                     telegram_id=property_obj.owner.telegram_id,
-                    message=f"Новая бронь от {request.user.username} на даты {check_in} - {check_out}."
+                    message=f"Новая бронь от {request.user.username} на даты {check_in} - {check_out}. Ожидается оплата предоплаты."
                 )
 
             Message.objects.create(
@@ -180,7 +198,12 @@ def booking_confirm_view(request, property_id):
                 text=form.cleaned_data['message']
             )
 
-            return redirect('chat:chat_room', booking_id=booking.id)
+            # Сохраняем ID брони в сессии для оплаты
+            request.session['booking_id'] = booking.id
+
+            # Перенаправляем на страницу оплаты
+            return redirect(reverse('payment_start'))
+
     else:
         form = InitialMessageForm()
 
@@ -189,6 +212,7 @@ def booking_confirm_view(request, property_id):
         'check_in': check_in,
         'check_out': check_out,
         'total_price': total_price,
+        'deposit': deposit,
         'form': form
     })
 
@@ -641,3 +665,238 @@ def leave_review_property_view(request, booking_id):
         'booking': booking,
         'form': form,
     })
+
+import base64
+import requests
+import json
+from decimal import Decimal
+
+from django.shortcuts import get_object_or_404, redirect
+from django.http import HttpResponse, JsonResponse
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
+
+from .models import Booking  # Импортируй свои модели
+
+
+BEPAID_API_URL = 'https://checkout.bepaid.by/ctp/api/checkouts'
+BEPAID_MERCHANT_ID = '363'
+BEPAID_SECRET_KEY = '63b6faa98cc31cf70c9b764a3b9bbd423def29ecadff935cf4cce49665d8ed8f'
+
+
+def get_bepaid_auth_header():
+    auth_str = f"{BEPAID_MERCHANT_ID}:{BEPAID_SECRET_KEY}"
+    auth_bytes = auth_str.encode('utf-8')
+    encoded_auth = base64.b64encode(auth_bytes).decode('utf-8')
+    return f"Basic {encoded_auth}"
+
+
+@login_required
+def payment_start_view(request):
+    booking_id = request.GET.get('booking_id') or request.session.get('booking_id')
+    if not booking_id:
+        return HttpResponse("Ошибка: не найдено бронирование в сессии.", status=400)
+
+    booking = get_object_or_404(Booking, id=booking_id, tenant=request.user)
+
+    try:
+        # 10% предоплаты, переводим в копейки
+        amount_cents = int((booking.total_price * Decimal('0.10') * 100).quantize(Decimal('1')))
+    except Exception as e:
+        return HttpResponse(f"Ошибка при вычислении суммы: {e}", status=500)
+
+    payload = {
+        "checkout": {
+            "test": True,
+            "transaction_type": "payment",
+            "attempts": 3,
+            "settings": {
+                "return_url": request.build_absolute_uri(
+    reverse('payment_return') + f"?booking_id={booking.id}"),
+                "success_url": request.build_absolute_uri(reverse('payment_success')),
+                "decline_url": request.build_absolute_uri(reverse('payment_decline')),
+                "fail_url": request.build_absolute_uri(reverse('payment_fail')),
+                "cancel_url": request.build_absolute_uri(reverse('payment_cancel')),
+                "notification_url": request.build_absolute_uri(reverse('payment_callback')),
+                "button_next_text": "Вернуться в магазин",
+                "language": "ru"
+            },
+            "payment_method": {
+                "types": ["credit_card"]  # УДАЛИЛИ "bank_card"
+            },
+            "order": {
+                "currency": "BYN",
+                "amount": amount_cents,
+                "description": f"Предоплата за бронирование №{booking.id}"
+            },
+            "customer": {
+                "email": request.user.email,
+            }
+        }
+    }
+
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': get_bepaid_auth_header(),
+    }
+
+    try:
+        response = requests.post(BEPAID_API_URL, headers=headers, json=payload)
+    except Exception as e:
+        return HttpResponse(f"Ошибка при отправке запроса: {e}", status=500)
+
+    if response.status_code not in (200, 201):
+        return HttpResponse(f"Ошибка создания платежа: {response.status_code} {response.text}", status=500)
+
+    try:
+        resp_data = response.json()
+    except Exception as e:
+        return HttpResponse(f"Ошибка при разборе ответа: {e}", status=500)
+
+    payment_url = resp_data.get('checkout', {}).get('redirect_url') or resp_data.get('checkout', {}).get('url')
+    if not payment_url:
+        return HttpResponse("Ошибка получения ссылки на оплату.", status=500)
+
+    return redirect(payment_url)
+
+
+@csrf_exempt
+def payment_callback_view(request):
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+
+
+    shop_order_id = data.get('order', {}).get('shop_order_id') or data.get('shop_order_id')
+    status = data.get('status')
+
+    if not shop_order_id or not status:
+        return JsonResponse({'error': 'Missing fields'}, status=400)
+
+    try:
+        booking = Booking.objects.get(id=shop_order_id)
+    except Booking.DoesNotExist:
+        return JsonResponse({'error': 'Booking not found'}, status=404)
+
+    if status == 'paid':
+        booking.deposit_paid = True
+        booking.save()
+
+    return JsonResponse({'status': 'ok'})
+import json
+import hmac
+import hashlib
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Booking
+
+
+BEPAID_SECRET_KEY = '63b6faa98cc31cf70c9b764a3b9bbd423def29ecadff935cf4cce49665d8ed8f'
+
+
+@csrf_exempt
+def payment_callback_view(request):
+    try:
+        raw_body = request.body
+        data = json.loads(raw_body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    # ✅ [Опционально] Проверка подписи (если Bepaid шлёт HMAC в заголовке X-Signature)
+    received_signature = request.headers.get('X-Signature')
+    if received_signature:
+        calculated_signature = hmac.new(
+            key=BEPAID_SECRET_KEY.encode('utf-8'),
+            msg=raw_body,
+            digestmod=hashlib.sha256
+        ).hexdigest()
+        if calculated_signature != received_signature:
+            return JsonResponse({'error': 'Invalid signature'}, status=403)
+
+    # 🔍 Получаем ID заказа и статус
+    shop_order_id = (
+        data.get('order', {}).get('shop_order_id') or
+        data.get('checkout', {}).get('order', {}).get('shop_order_id')
+    )
+    status = data.get('transaction', {}).get('status') or data.get('status')
+
+    if not shop_order_id or not status:
+        return JsonResponse({'error': 'Missing fields'}, status=400)
+
+    try:
+        booking = Booking.objects.get(id=shop_order_id)
+    except Booking.DoesNotExist:
+        return JsonResponse({'error': 'Booking not found'}, status=404)
+
+    if status == 'successful' or status == 'paid':
+        booking.deposit_paid = True
+        booking.save()
+
+    return JsonResponse({'status': 'ok'})
+
+
+from django.shortcuts import redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import Booking
+
+# @login_required
+# def payment_return_view(request):
+#     status = request.GET.get('status')
+#     token = request.GET.get('token')
+#     uid = request.GET.get('uid')
+#
+#     # Попытка получить booking_id из сессии
+#     booking_id = request.session.get('booking_id')
+#
+#     if not booking_id:
+#         # Если booking_id не в сессии, можно попытаться получить из параметров URL, если есть
+#         booking_id = request.GET.get('booking_id')
+#
+#     if not booking_id:
+#         # fallback — например, редирект на профиль
+#         return redirect('profile_view')
+#
+#     booking = get_object_or_404(Booking, id=booking_id)
+#
+#     # Проверяем права пользователя
+#     if request.user != booking.tenant and request.user != booking.property.owner:
+#         return redirect('profile_view')
+#
+#     # Проверяем статус оплаты, который пришёл в URL (лучше полагаться на вебхук, но если надо)
+#     if status != 'successful' and not booking.deposit_paid:
+#         # Если оплата не прошла, редирект куда нужно
+#         return redirect('profile_view')
+#
+#     # Тут можно сохранить token и uid в booking или логах, если нужно
+#
+#     # Перенаправляем в чат
+#     return redirect('chat:chat_room', booking_id=booking.id)
+
+@login_required
+def payment_return_view(request):
+    status = request.GET.get('status')
+    booking_id = request.GET.get('booking_id') or request.session.get('booking_id')
+
+    if not booking_id:
+        # Если booking_id нет — редирект на профиль или другую страницу
+        return redirect('profile_view')
+
+    booking = get_object_or_404(Booking, id=booking_id)
+
+    # Проверяем, что текущий пользователь — арендатор или владелец бронирования
+    if request.user != booking.tenant and request.user != booking.property.owner:
+        return redirect('profile_view')
+
+    # Проверяем статус оплаты
+    # Если в GET есть статус и он успешный — считаем оплату успешной
+    # Или если уже в базе указано, что депозит оплачен
+    if status != 'successful' and not booking.deposit_paid:
+        # Оплата не прошла — редирект куда нужно
+        return redirect('profile_view')
+
+    # Все проверки пройдены — редиректим в чат с booking_id
+    return redirect('chat:chat_room', booking_id=booking.id)
