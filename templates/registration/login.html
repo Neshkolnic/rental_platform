@@ -3,34 +3,110 @@
 {% block title %}Вход{% endblock %}
 
 {% block content %}
-<div class="auth-form">
-    <h2>Вход в систему</h2>
-
-    {% if form.errors %}
-    <div class="error-message">
-        Ошибка: Неправильный email или пароль
+<div style="width: 100%; min-height: 100vh; position: relative; background: #F1F1F1; display: flex; justify-content: center; align-items: center; padding: 20px;">
+  <div style="width: 100%; max-width: 792px; padding: 32px 48px; background: white; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.10); display: flex; flex-direction: column; align-items: center; gap: 24px;">
+    <div style="display: flex; justify-content: flex-start; align-items: flex-end;">
+      <div style="color: black; font-size: 24px; font-family: Roboto; font-weight: 700; text-transform: uppercase; line-height: 41.28px;">the</div>
+      <div style="color: black; font-size: 48px; font-family: Roboto; font-weight: 700; text-transform: uppercase;">Date</div>
     </div>
-    {% endif %}
 
-    <form method="post">
+    <div style="width: 100%; height: 1px; background: rgba(0, 0, 0, 0.15);"></div>
+
+    <div style="width: 100%; max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 32px;">
+      <h2 style="width: 100%; text-align: center; color: #2D2D2D; font-size: 36px; font-family: Roboto; font-weight: 500; margin: 0;">Вход</h2>
+
+      <form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
         {% csrf_token %}
 
-        <div class="form-field">
-            <label>Email:</label>
-            <input type="email" name="username" required autofocus>
+        {% if form.errors %}
+        <div style="color: red; font-size: 14px; font-family: Open Sans; margin-bottom: 16px;">
+          Ошибка: Неправильный email или пароль
+        </div>
+        {% endif %}
+
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Email Field -->
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label for="id_username" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">E-mail:</label>
+            <input type="email" name="username" id="id_username" required autofocus style="width: 100%; height: 46px; padding: 0 16px; border: 1px solid #848484; font-size: 16px; font-family: Open Sans; color: #2D2D2D; box-sizing: border-box;" placeholder="you@example.com">
+          </div>
+
+          <!-- Password Field -->
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label for="id_password" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">Пароль:</label>
+            <input type="password" name="password" id="id_password" required style="width: 100%; height: 46px; padding: 0 16px; border: 1px solid #848484; font-size: 16px; font-family: Open Sans; color: #2D2D2D; box-sizing: border-box;" placeholder="Введите пароль">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="remember_me" name="remember_me" style="width: 16px; height: 16px; border: 1px solid black; background: white;">
+                <label for="remember_me" style="color: black; font-size: 14px; font-family: Roboto; font-weight: 400;">Запомнить меня</label>
+              </div>
+              <a href="{% url 'password_reset' %}" style="color: black; font-size: 14px; font-family: Roboto; font-weight: 400; text-decoration: underline;">Забыли пароль?</a>
+            </div>
+          </div>
         </div>
 
-        <div class="form-field">
-            <label>Пароль:</label>
-            <input type="password" name="password" required>
-        </div>
+        <button type="submit" style="width: 100%; height: 46px; background: black; color: #F1F1F1; font-size: 16px; font-family: Open Sans; font-weight: 600; text-transform: uppercase; border: none; cursor: pointer;">
+          Войти
+        </button>
+      </form>
 
-        <button type="submit" class="submit-btn">Войти</button>
-    </form>
-
-    <div class="auth-links">
-        <a href="{% url 'register' %}">Создать аккаунт</a>
-        <a href="{% url 'password_reset' %}">Забыли пароль?</a>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 4px;">
+        <div style="color: #2D2D2D; font-size: 14px; font-family: Roboto; font-weight: 400;">Еще нет аккаунта?</div>
+        <a href="{% url 'register' %}" style="color: black; font-size: 14px; font-family: Roboto; font-weight: 500; text-decoration: underline;">Создать</a>
+      </div>
     </div>
+  </div>
 </div>
+
+<style>
+  /* Стили для полей ввода */
+  input {
+    width: 100%;
+    height: 46px;
+    padding: 0 16px;
+    border: 1px solid #848484;
+    font-size: 16px;
+    font-family: Open Sans;
+    color: #2D2D2D;
+    box-sizing: border-box;
+  }
+
+  input:focus {
+    outline: none;
+    border-color: black;
+  }
+
+  input::placeholder {
+    color: #848484;
+  }
+
+  /* Стили для чекбокса */
+  input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid black;
+    background: white;
+    cursor: pointer;
+    position: relative;
+  }
+
+  input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+  }
+
+  /* Стили для ошибок */
+  .error {
+    color: red;
+    font-size: 14px;
+    font-family: Open Sans;
+  }
+</style>
 {% endblock %}
