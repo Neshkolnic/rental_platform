@@ -1,8 +1,13 @@
 from datetime import date, datetime, timedelta
 import json
 import os
+from django.contrib.auth.forms import PasswordResetForm
 from booking.tasks import schedule_review_reminder
-
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.views import PasswordResetView
+from django.urls import reverse_lazy
+from django.shortcuts import render, redirect
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -19,6 +24,35 @@ from geopy.geocoders import Nominatim
 from .forms import UserRegisterForm, UserLoginForm, PropertyForm, AvailabilityCalendarForm
 from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking, User, Message
 
+
+class EmailPrefillPasswordResetForm(forms.Form):
+    email = forms.EmailField(label="Email", max_length=254)
+
+    def __init__(self, *args, **kwargs):
+        initial_email = kwargs.pop('initial_email', None)
+        super().__init__(*args, **kwargs)
+        if initial_email:
+            self.fields['email'].initial = initial_email
+
+class MyPasswordResetForm(PasswordResetForm):
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email, to_email, html_email_template_name=None):
+        context['domain'] = '127.0.0.1:8080'  # вот тут задаём нужный домен
+        super().send_mail(subject_template_name, email_template_name, context, from_email, to_email, html_email_template_name)
+
+class CustomPasswordResetView(PasswordResetView):
+    template_name = 'password_reset.html'
+    email_template_name = 'password_reset_email.html'
+    subject_template_name = 'password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+
+    def get_form_kwargs(self):
+        """Передаём email, если он пришёл в GET"""
+        kwargs = super().get_form_kwargs()
+        email = self.request.GET.get('email')
+        if email:
+            kwargs['initial'] = {'email': email}
+        return kwargs
 
 def geocode_view(request):
     address = request.GET.get('address', '')
@@ -51,9 +85,15 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             return redirect('home')
+        else:
+            messages.error(request, 'Неверные данные. Можете сбросить пароль.')
+            email_or_username = request.POST.get('username')  # зависит от того, что в форме
+            return redirect(f"{reverse_lazy('password_reset')}?email={email_or_username}")
     else:
         form = UserLoginForm()
+
     return render(request, 'registration/login.html', {'form': form})
+
 
 
 def logout_view(request):
