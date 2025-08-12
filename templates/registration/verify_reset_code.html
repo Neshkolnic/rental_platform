@@ -1,0 +1,7 @@
+<h2>Введите код</h2>
+<form method="post">
+  {% csrf_token %}
+  <label>Код:</label>
+  <input type="text" name="code" maxlength="6" required>
+  <button type="submit">Подтвердить</button>
+</form>

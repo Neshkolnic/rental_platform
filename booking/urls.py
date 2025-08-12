@@ -4,7 +4,7 @@ from .views import save_availability, api_availability_data, api_save_availabili
 from .views import leave_review_view
 from django.http import HttpResponse
 from django.contrib.auth import views as auth_views
-
+from . import views
 def payment_return_view(request):
     return HttpResponse("Payment Return")
 
@@ -60,30 +60,10 @@ path('payment/return/', payment_return_view, name='payment_return'),
     path('payment/decline/', payment_decline_view, name='payment_decline'),
     path('payment/fail/', payment_fail_view, name='payment_fail'),
     path('payment/cancel/', payment_cancel_view, name='payment_cancel'),
-    # Сброс пароля
-    path(
-        'password-reset/',
-        views.CustomPasswordResetView.as_view(
-            template_name='registration/password_reset.html',
-            email_template_name='registration/password_reset_email.html',
-            subject_template_name='registration/password_reset_subject.txt',
-            success_url='/password-reset/done/'
-        ),
-        name='password_reset'
-    ),
-    path(
-        'password-reset/done/',
-        auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'),
-        name='password_reset_done'
-    ),
-    path(
-        'reset/<uidb64>/<token>/',
-        auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html'),
-        name='password_reset_confirm'
-    ),
-    path(
-        'reset/done/',
-        auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'),
-        name='password_reset_complete'
-    ),
+    path('password/code/', views.send_reset_code_view, name='send_reset_code'),
+    path('password/code/verify/', views.verify_reset_code_view, name='verify_reset_code'),
+    path('password/code/set/', views.set_new_password_view, name='set_new_password'),
+
+
+
 ]
