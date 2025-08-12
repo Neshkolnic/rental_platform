@@ -1,0 +1,14 @@
+<form method="POST">
+    {% csrf_token %}
+    <label for="confirmation_code">Введите код подтверждения с почты</label>
+    <input type="text" name="confirmation_code" required>
+    <button type="submit">Подтвердить</button>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</form>

@@ -25,34 +25,6 @@ from .forms import UserRegisterForm, UserLoginForm, PropertyForm, AvailabilityCa
 from .models import Property, PropertyPhoto, AvailabilityCalendar, Booking, User, Message
 
 
-class EmailPrefillPasswordResetForm(forms.Form):
-    email = forms.EmailField(label="Email", max_length=254)
-
-    def __init__(self, *args, **kwargs):
-        initial_email = kwargs.pop('initial_email', None)
-        super().__init__(*args, **kwargs)
-        if initial_email:
-            self.fields['email'].initial = initial_email
-
-class MyPasswordResetForm(PasswordResetForm):
-    def send_mail(self, subject_template_name, email_template_name,
-                  context, from_email, to_email, html_email_template_name=None):
-        context['domain'] = '127.0.0.1:8080'  # вот тут задаём нужный домен
-        super().send_mail(subject_template_name, email_template_name, context, from_email, to_email, html_email_template_name)
-
-class CustomPasswordResetView(PasswordResetView):
-    template_name = 'password_reset.html'
-    email_template_name = 'password_reset_email.html'
-    subject_template_name = 'password_reset_subject.txt'
-    success_url = reverse_lazy('password_reset_done')
-
-    def get_form_kwargs(self):
-        """Передаём email, если он пришёл в GET"""
-        kwargs = super().get_form_kwargs()
-        email = self.request.GET.get('email')
-        if email:
-            kwargs['initial'] = {'email': email}
-        return kwargs
 
 def geocode_view(request):
     address = request.GET.get('address', '')
@@ -66,17 +38,43 @@ def geocode_view(request):
     return JsonResponse({'error': 'Адрес не найден'}, status=400)
 
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from booking.models import User
+
+from .forms import UserRegisterForm
+
+from django.core.mail import send_mail
+import random
+import string
+
+
+
+from django.core.mail import send_mail
+from django.contrib.auth import login
+from django.shortcuts import render, redirect
+from .forms import UserRegisterForm
+
+
 def register_view(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            # Сохраняем пользователя и сразу активируем его
+            user = form.save(commit=False)
+            user.is_active = True  # Активируем пользователя сразу
+            user.save()
+
+            # Логиним пользователя после регистрации
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return redirect('home')
+
+            # Направляем пользователя на главную страницу или страницу входа
+            return redirect('home')  # Замените 'home' на нужный вам URL
+
     else:
         form = UserRegisterForm()
-    return render(request, 'registration/register.html', {'form': form})
 
+    return render(request, 'registration/register.html', {'form': form})
 
 def login_view(request):
     if request.method == 'POST':
@@ -87,13 +85,11 @@ def login_view(request):
             return redirect('home')
         else:
             messages.error(request, 'Неверные данные. Можете сбросить пароль.')
-            email_or_username = request.POST.get('username')  # зависит от того, что в форме
-            return redirect(f"{reverse_lazy('password_reset')}?email={email_or_username}")
+
     else:
         form = UserLoginForm()
 
     return render(request, 'registration/login.html', {'form': form})
-
 
 
 def logout_view(request):
@@ -940,3 +936,102 @@ def payment_return_view(request):
 
     # Все проверки пройдены — редиректим в чат с booking_id
     return redirect('chat:chat_room', booking_id=booking.id)
+
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
+from .models import PasswordResetCode
+from django.shortcuts import get_object_or_404
+
+from django.contrib import messages  # не забудь импортировать
+
+def send_reset_code_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(request, 'Пользователь с таким email не найден')
+            return render(request, 'registration/send_reset_code.html')
+
+        # Удаляем старые коды
+        PasswordResetCode.objects.filter(user=user).delete()
+
+        # Генерация нового кода
+        code = get_random_string(length=6, allowed_chars='0123456789')
+
+        # Сохраняем код
+        PasswordResetCode.objects.create(user=user, code=code)
+
+        # Отправляем на почту
+        send_mail(
+            'Код для сброса пароля',
+            f'Ваш код для сброса пароля: {code}',
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+        request.session['reset_email'] = email
+        return redirect('verify_reset_code')
+
+    return render(request, 'registration/send_reset_code.html')
+
+
+
+
+def verify_reset_code_view(request):
+    email = request.session.get('reset_email')
+    if not email:
+        return redirect('send_reset_code')
+
+    user = get_object_or_404(User, email=email)
+
+    if request.method == 'POST':
+        code_input = request.POST.get('code')
+
+        # Получаем последний код
+        reset_code = PasswordResetCode.objects.filter(user=user).order_by('-created_at').first()
+
+        if not reset_code or reset_code.code != code_input:
+            messages.error(request, 'Неверный код')
+        elif reset_code.is_expired():
+            messages.error(request, 'Код истёк')
+        else:
+            request.session['verified_user_id'] = user.id
+            return redirect('set_new_password')
+
+    return render(request, 'registration/verify_reset_code.html')
+
+
+from django.contrib.auth.hashers import make_password
+
+def set_new_password_view(request):
+    user_id = request.session.get('verified_user_id')
+    if not user_id:
+        return redirect('send_reset_code')
+
+    user = get_object_or_404(User, pk=user_id)
+
+    if request.method == 'POST':
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if password1 != password2:
+            messages.error(request, 'Пароли не совпадают')
+        elif len(password1) < 6:
+            messages.error(request, 'Пароль должен быть не менее 6 символов')
+        else:
+            user.password = make_password(password1)
+            user.save()
+
+            # Чистим сессию
+            request.session.flush()
+            messages.success(request, 'Пароль успешно обновлён. Войдите в систему.')
+            return redirect('login')
+
+    return render(request, 'registration/set_new_password.html')
+
+
+
+

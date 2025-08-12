@@ -3,8 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.conf import settings
 import requests
-from datetime import date
-
+from datetime import date, timedelta
 
 from django.core.files.storage import default_storage
 
@@ -404,3 +403,19 @@ class Review(models.Model):
 
     def __str__(self):
         return f'Отзыв от {self.author} для {self.to_user if self.to_user else self.property}'
+
+from django.utils import timezone
+import uuid
+
+class PasswordResetCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=4)
+
+    def __str__(self):
+        return f"{self.user.email} — {self.code}"
+
+

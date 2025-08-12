@@ -103,3 +103,34 @@ def send_telegram_notification(telegram_id, message):
         response.raise_for_status()
     except Exception as e:
         print(f"Ошибка при отправке Telegram-сообщения: {e}")
+
+
+import hashlib
+import requests
+import json
+
+rocketsms_login = '998348819'
+rocketsms_password = 'kpYPWJe9'
+rocketsms_passhash = hashlib.md5(rocketsms_password.encode('utf-8')).hexdigest()
+rocketsms_url = 'http://api.rocketsms.by/simple/send'
+
+def sendsms(phone, message):
+    data = {
+        'username': rocketsms_login,
+        'password': rocketsms_passhash,
+        'phone': phone,
+        'text': message,
+        'priority': 'true'
+    }
+    try:
+        request = requests.post(rocketsms_url, data=data)
+        result = request.json()
+        status = result['status']
+    except Exception as e:
+        print('Cannot send SMS: bad or no response from RocketSMS.')
+        print(e)
+    else:
+        if status in ['SENT', 'QUEUED']:
+            print('SMS accepted, status: {}'.format(status))
+        else:
+            print('SMS rejected, status: {}'.format(status))

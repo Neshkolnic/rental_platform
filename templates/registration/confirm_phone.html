@@ -1,0 +1,10 @@
+<h2>Подтверждение Телефона</h2>
+<form method="post">
+  {% csrf_token %}
+  <label for="confirmation_code">Введите код из сообщения:</label>
+  <input type="text" name="confirmation_code" required>
+  {% if error %}
+    <p style="color:red;">{{ error }}</p>
+  {% endif %}
+  <button type="submit">Подтвердить</button>
+</form>

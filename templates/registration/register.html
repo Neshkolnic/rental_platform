@@ -1,137 +1,68 @@
-{% extends "base.html" %}
+<form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
+  {% csrf_token %}
 
-{% block title %}Регистрация{% endblock %}
-
-{% block content %}
-<div style="width: 100%; min-height: 100vh; position: relative; background: #F1F1F1; display: flex; justify-content: center; align-items: center; padding: 20px;">
-  <div style="width: 100%; max-width: 792px; padding: 32px 48px; background: white; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.10); display: flex; flex-direction: column; align-items: center; gap: 24px;">
-    <div style="display: flex; justify-content: flex-start; align-items: flex-end;">
-      <div style="color: black; font-size: 24px; font-family: Roboto; font-weight: 700; text-transform: uppercase; line-height: 41.28px;">the</div>
-      <div style="color: black; font-size: 48px; font-family: Roboto; font-weight: 700; text-transform: uppercase;">Date</div>
-    </div>
-
-    <div style="width: 100%; height: 1px; background: rgba(0, 0, 0, 0.15);"></div>
-
-    <div style="width: 100%; max-width: 384px; display: flex; flex-direction: column; align-items: center; gap: 32px;">
-      <h2 style="width: 100%; text-align: center; color: #2D2D2D; font-size: 36px; font-family: Roboto; font-weight: 500; margin: 0;">Регистрация</h2>
-
-      <form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
-        {% csrf_token %}
-
-        <!-- Вывод ошибок для всей формы -->
-        {% if form.errors %}
-        <div style="color: red; font-size: 14px; font-family: Open Sans; margin-bottom: 16px;">
-          Пожалуйста, исправьте ошибки в форме:
-        </div>
-        {% endif %}
-
-        <div style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
-          <!-- Email Field -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label for="{{ form.email.id_for_label }}" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">E-mail:</label>
-            {{ form.email }}
-            {% if form.email.errors %}
-              <ul style="color: red; font-size: 14px; font-family: Open Sans; margin: 0; padding-left: 16px;">
-                {% for error in form.email.errors %}
-                  <li>{{ error }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-
-          <!-- Username Field -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label for="{{ form.username.id_for_label }}" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">Имя пользователя:</label>
-            {{ form.username }}
-            {% if form.username.errors %}
-              <ul style="color: red; font-size: 14px; font-family: Open Sans; margin: 0; padding-left: 16px;">
-                {% for error in form.username.errors %}
-                  <li>{{ error }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-
-          <!-- Phone Field -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label for="{{ form.phone.id_for_label }}" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">Телефон:</label>
-            {{ form.phone }}
-            {% if form.phone.errors %}
-              <ul style="color: red; font-size: 14px; font-family: Open Sans; margin: 0; padding-left: 16px;">
-                {% for error in form.phone.errors %}
-                  <li>{{ error }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-
-          <!-- Password1 Field -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label for="{{ form.password1.id_for_label }}" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">Придумайте пароль:</label>
-            {{ form.password1 }}
-            {% if form.password1.errors %}
-              <ul style="color: red; font-size: 14px; font-family: Open Sans; margin: 0; padding-left: 16px;">
-                {% for error in form.password1.errors %}
-                  <li>{{ error }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-
-          <!-- Password2 Field -->
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label for="{{ form.password2.id_for_label }}" style="color: #2D2D2D; font-size: 16px; font-family: Open Sans; font-weight: 400;">Повторите пароль:</label>
-            {{ form.password2 }}
-            {% if form.password2.errors %}
-              <ul style="color: red; font-size: 14px; font-family: Open Sans; margin: 0; padding-left: 16px;">
-                {% for error in form.password2.errors %}
-                  <li>{{ error }}</li>
-                {% endfor %}
-              </ul>
-            {% endif %}
-          </div>
-        </div>
-
-        <button type="submit" style="width: 100%; height: 46px; background: black; color: #F1F1F1; font-size: 16px; font-family: Open Sans; font-weight: 600; text-transform: uppercase; border: none; cursor: pointer;">
-          Зарегистрироваться
-        </button>
-      </form>
-
-      <div style="display: flex; justify-content: center; align-items: center; gap: 4px;">
-        <div style="color: #2D2D2D; font-size: 14px; font-family: Roboto; font-weight: 400;">Уже есть аккаунт?</div>
-        <a href="{% url 'login' %}" style="color: black; font-size: 14px; font-family: Roboto; font-weight: 500; text-decoration: underline;">Войти</a>
-      </div>
-    </div>
+  <!-- Поле для ввода email -->
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <label for="id_email" style="color: #2D2D2D; font-size: 16px;">E-mail:</label>
+    {{ form.email }}
+    {% if form.email.errors %}
+      <ul style="color: red; font-size: 14px;">
+        {% for error in form.email.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
   </div>
-</div>
 
-<style>
-  /* Стили для полей ввода */
-  input {
-    width: 100%;
-    height: 46px;
-    padding: 0 16px;
-    border: 1px solid #848484;
-    font-size: 16px;
-    font-family: Open Sans;
-    color: #2D2D2D;
-    box-sizing: border-box;
-  }
+  <!-- Поле для ввода имени пользователя -->
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <label for="id_username" style="color: #2D2D2D; font-size: 16px;">Имя пользователя:</label>
+    {{ form.username }}
+    {% if form.username.errors %}
+      <ul style="color: red; font-size: 14px;">
+        {% for error in form.username.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
 
-  input:focus {
-    outline: none;
-    border-color: black;
-  }
+  <!-- Поле для ввода пароля -->
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <label for="id_password1" style="color: #2D2D2D; font-size: 16px;">Придумайте пароль:</label>
+    {{ form.password1 }}
+    {% if form.password1.errors %}
+      <ul style="color: red; font-size: 14px;">
+        {% for error in form.password1.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
 
-  input::placeholder {
-    color: #848484;
-  }
+  <!-- Поле для повторного ввода пароля -->
+  <div style="display: flex; flex-direction: column; gap: 4px;">
+    <label for="id_password2" style="color: #2D2D2D; font-size: 16px;">Повторите пароль:</label>
+    {{ form.password2 }}
+    {% if form.password2.errors %}
+      <ul style="color: red; font-size: 14px;">
+        {% for error in form.password2.errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
 
-  /* Стили для ошибок */
-  .error {
-    color: red;
-    font-size: 14px;
-    font-family: Open Sans;
-  }
-</style>
-{% endblock %}
+  <!-- Поле для ввода телефона -->
+  <form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
+  {% csrf_token %}
+
+  <!-- Поля формы -->
+  <div>
+    <label for="id_phone_number">Телефон:</label>
+    {{ form.phone_number }}  <!-- Поле для телефона из формы -->
+  </div>
+
+  <button type="submit">Зарегистрироваться</button>
+</form>
+
