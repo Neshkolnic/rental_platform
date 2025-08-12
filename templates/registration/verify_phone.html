@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Подтверждение телефона</title>
+</head>
+<body>
+    <h1>Подтверждение телефона</h1>
+
+    {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <p>Мы отправили код подтверждения на ваш телефон. Пожалуйста, введите его ниже:</p>
+
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="code" placeholder="Введите код" required maxlength="6" pattern="\d{6}" />
+        <button type="submit">Подтвердить телефон</button>
+    </form>
+
+    <form method="post" action="{% url 'resend_phone_code' %}">
+        {% csrf_token %}
+        <button type="submit">Отправить код повторно</button>
+    </form>
+
+    <p><a href="{% url 'register' %}">Вернуться к регистрации</a></p>
+</body>
+</html>

@@ -6,6 +6,13 @@ import requests
 from datetime import date, timedelta
 
 from django.core.files.storage import default_storage
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.core.mail import send_mail
+import random
+from django.utils import timezone
+from datetime import timedelta
+from django.conf import settings
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -45,6 +52,8 @@ class User(AbstractUser):
         if self.avatar and default_storage.exists(self.avatar.path):
             default_storage.delete(self.avatar.path)
         super().delete(*args, **kwargs)
+
+
 
     # в модели User добавь метод
 
@@ -419,3 +428,22 @@ class PasswordResetCode(models.Model):
         return f"{self.user.email} — {self.code}"
 
 
+from django.db import models
+from django.utils import timezone
+import uuid
+
+class EmailVerificationCode(models.Model):
+    email = models.EmailField()
+    code = models.CharField(max_length=6)  # длина кода (например, 6 символов)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
+
+class PhoneVerificationCode(models.Model):
+    phone = models.CharField(max_length=20)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timezone.timedelta(minutes=10)

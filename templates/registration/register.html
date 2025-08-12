@@ -1,68 +1,44 @@
-<form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
-  {% csrf_token %}
+{% extends 'base.html' %}
 
-  <!-- Поле для ввода email -->
-  <div style="display: flex; flex-direction: column; gap: 4px;">
-    <label for="id_email" style="color: #2D2D2D; font-size: 16px;">E-mail:</label>
-    {{ form.email }}
-    {% if form.email.errors %}
-      <ul style="color: red; font-size: 14px;">
-        {% for error in form.email.errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </div>
+{% block content %}
+  <h2>Регистрация</h2>
 
-  <!-- Поле для ввода имени пользователя -->
-  <div style="display: flex; flex-direction: column; gap: 4px;">
-    <label for="id_username" style="color: #2D2D2D; font-size: 16px;">Имя пользователя:</label>
-    {{ form.username }}
-    {% if form.username.errors %}
-      <ul style="color: red; font-size: 14px;">
-        {% for error in form.username.errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </div>
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
 
-  <!-- Поле для ввода пароля -->
-  <div style="display: flex; flex-direction: column; gap: 4px;">
-    <label for="id_password1" style="color: #2D2D2D; font-size: 16px;">Придумайте пароль:</label>
-    {{ form.password1 }}
-    {% if form.password1.errors %}
-      <ul style="color: red; font-size: 14px;">
-        {% for error in form.password1.errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </div>
+  <form method="POST">
+    {% csrf_token %}
 
-  <!-- Поле для повторного ввода пароля -->
-  <div style="display: flex; flex-direction: column; gap: 4px;">
-    <label for="id_password2" style="color: #2D2D2D; font-size: 16px;">Повторите пароль:</label>
-    {{ form.password2 }}
-    {% if form.password2.errors %}
-      <ul style="color: red; font-size: 14px;">
-        {% for error in form.password2.errors %}
-          <li>{{ error }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  </div>
+    <div>
+      <label for="id_email">Электронная почта</label>
+      <input type="email" name="email" id="id_email" required value="{{ request.POST.email|default:'' }}">
+    </div>
 
-  <!-- Поле для ввода телефона -->
-  <form method="post" style="width: 100%; display: flex; flex-direction: column; gap: 24px;">
-  {% csrf_token %}
+    <div>
+      <label for="id_phone">Телефон</label>
+      <input type="text" name="phone" id="id_phone" required value="{{ request.POST.phone|default:'' }}">
+    </div>
 
-  <!-- Поля формы -->
-  <div>
-    <label for="id_phone_number">Телефон:</label>
-    {{ form.phone_number }}  <!-- Поле для телефона из формы -->
-  </div>
+    <div>
+      <label for="id_password">Пароль</label>
+      <input type="password" name="password" id="id_password" required>
+    </div>
 
-  <button type="submit">Зарегистрироваться</button>
-</form>
+    <div>
+      <label for="id_password2">Повторите пароль</label>
+      <input type="password" name="password2" id="id_password2" required>
+    </div>
 
+    <div>
+      <button type="submit">Зарегистрироваться</button>
+    </div>
+  </form>
+
+  <p>Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
+
+{% endblock %}

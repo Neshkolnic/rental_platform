@@ -107,14 +107,13 @@ def send_telegram_notification(telegram_id, message):
 
 import hashlib
 import requests
-import json
 
-rocketsms_login = '998348819'
-rocketsms_password = 'kpYPWJe9'
-rocketsms_passhash = hashlib.md5(rocketsms_password.encode('utf-8')).hexdigest()
-rocketsms_url = 'http://api.rocketsms.by/simple/send'
+def send_sms(phone, message):
+    rocketsms_login = 'test'  # 998348819
+    rocketsms_password = 'test'  # kpYPWJe9
+    rocketsms_passhash = hashlib.md5(rocketsms_password.encode('utf-8')).hexdigest()
+    rocketsms_url = 'http://api.rocketsms.by/simple/send'
 
-def sendsms(phone, message):
     data = {
         'username': rocketsms_login,
         'password': rocketsms_passhash,
@@ -127,10 +126,9 @@ def sendsms(phone, message):
         result = request.json()
         status = result['status']
     except Exception as e:
-        print('Cannot send SMS: bad or no response from RocketSMS.')
-        print(e)
+        print(f'Error: {e}')
     else:
         if status in ['SENT', 'QUEUED']:
-            print('SMS accepted, status: {}'.format(status))
+            print(f'SMS sent: {status}')
         else:
-            print('SMS rejected, status: {}'.format(status))
+            print(f'SMS failed: {status}')

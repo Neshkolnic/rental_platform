@@ -56,25 +56,51 @@ from django.shortcuts import render, redirect
 from .forms import UserRegisterForm
 
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import UserRegisterForm
+from .models import User
+
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import EmailVerificationCode, PhoneVerificationCode
+from .utils import send_sms  # твоя функция отправки SMS
+from django.core.mail import send_mail
+
 def register_view(request):
     if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            # Сохраняем пользователя и сразу активируем его
-            user = form.save(commit=False)
-            user.is_active = True  # Активируем пользователя сразу
-            user.save()
+        email = request.POST.get('email')
+        phone = request.POST.get('phone')
+        password = request.POST.get('password')
+        password2 = request.POST.get('password2')
 
-            # Логиним пользователя после регистрации
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        if password != password2:
+            messages.error(request, 'Пароли не совпадают')
+            return render(request, 'registration/register.html')
 
-            # Направляем пользователя на главную страницу или страницу входа
-            return redirect('home')  # Замените 'home' на нужный вам URL
+        # Проверка email и телефона на существование и валидность опущена для краткости
 
-    else:
-        form = UserRegisterForm()
+        # Сохраняем данные в сессии для дальнейшей регистрации
+        request.session['register_email'] = email
+        request.session['register_phone'] = phone
+        request.session['register_password'] = password  # Лучше зашифровать или сохранить хэш
 
-    return render(request, 'registration/register.html', {'form': form})
+        # Генерируем и отправляем код на email
+        email_code = generate_code()
+        EmailVerificationCode.objects.create(email=email, code=email_code)
+        send_mail(
+            'Ваш код подтверждения email',
+            f'Ваш код: {email_code}',
+            'no-reply@example.com',
+            [email],
+        )
+
+
+
+        messages.success(request, 'Код отправлен на email. Подтвердите его.')
+        return redirect('verify_email')
+
+    return render(request, 'registration/register.html')
 
 def login_view(request):
     if request.method == 'POST':
@@ -1035,3 +1061,136 @@ def set_new_password_view(request):
 
 
 
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import User
+from django.utils import timezone
+
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import EmailVerificationCode
+
+def verify_email_view(request):
+    email = request.session.get('register_email')
+    phone = request.session.get('register_phone')  # <-- нужен для отправки SMS
+    if not email:
+        messages.error(request, 'Сначала введите email для регистрации.')
+        return redirect('register')
+
+    verification_record = EmailVerificationCode.objects.filter(email=email).order_by('-created_at').first()
+    if not verification_record:
+        messages.error(request, 'Код для подтверждения не был отправлен.')
+        return redirect('register')
+
+    if request.method == 'POST':
+        code = request.POST.get('code')
+
+        if verification_record.code != code:
+            messages.error(request, 'Неверный код. Попробуйте снова.')
+        elif verification_record.is_expired():
+            messages.error(request, 'Срок действия кода истёк. Запросите новый код.')
+        else:
+            request.session['email_verified'] = True
+            messages.success(request, 'Email подтверждён!')
+
+            # ➕ Отправляем код на телефон только после подтверждения email
+            phone_code = generate_code()
+            PhoneVerificationCode.objects.create(phone=phone, code=phone_code)
+            send_sms(phone, f'Ваш код подтверждения: {phone_code}')
+
+            return redirect('verify_phone')
+
+    return render(request, 'registration/verify_email.html')
+
+from django.utils import timezone
+from datetime import timedelta
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from .models import PhoneVerificationCode
+
+def verify_phone_view(request):
+    phone = request.session.get('register_phone')
+    if not phone:
+        messages.error(request, 'Сначала введите телефон для регистрации.')
+        return redirect('register')
+
+    verification_record = PhoneVerificationCode.objects.filter(phone=phone).order_by('-created_at').first()
+    if not verification_record:
+        messages.error(request, 'Код для подтверждения не был отправлен.')
+        return redirect('register')
+
+    if request.method == 'POST':
+        code = request.POST.get('code')
+
+        if verification_record.code != code:
+            messages.error(request, 'Неверный код. Попробуйте снова.')
+        elif verification_record.is_expired():
+            messages.error(request, 'Срок действия кода истёк. Запросите новый код.')
+        else:
+            request.session['phone_verified'] = True
+            messages.success(request, 'Телефон подтверждён!')
+
+            # Теперь создаём пользователя, только если оба подтверждения пройдены
+            if request.session.get('email_verified') and request.session.get('phone_verified'):
+                from django.contrib.auth import get_user_model
+                email = request.session.get('register_email')
+                phone = request.session.get('register_phone')
+                password = request.session.get('register_password')
+
+                user = User.objects.create_user(username=email, email=email, password=password)
+                # Если есть поле phone в User, то записать туда
+                # user.phone = phone
+                # user.save()
+
+                # Чистим сессию
+                for key in ['register_email', 'register_phone', 'register_password', 'email_verified', 'phone_verified']:
+                    if key in request.session:
+                        del request.session[key]
+
+                messages.success(request, 'Регистрация завершена! Теперь войдите в систему.')
+                return redirect('login')
+
+            else:
+                # Если почему-то телефон подтверждён, а email нет (или наоборот) — редирект на нужный шаг
+                return redirect('verify_email')
+
+    return render(request, 'registration/verify_phone.html')
+
+
+import random
+import string
+
+def generate_code(length=6):
+    return ''.join(random.choices(string.digits, k=length))
+
+
+def resend_email_code_view(request):
+    email = request.session.get('register_email')
+    if not email:
+        messages.error(request, 'Сначала введите email для регистрации.')
+        return redirect('register')
+
+    email_code = generate_code()
+    EmailVerificationCode.objects.create(email=email, code=email_code)
+    send_mail(
+        'Ваш новый код подтверждения email',
+        f'Ваш код: {email_code}',
+        'no-reply@example.com',
+        [email],
+    )
+    messages.success(request, 'Новый код отправлен на ваш email.')
+    return redirect('verify_email')
+
+def resend_phone_code_view(request):
+    phone = request.session.get('register_phone')
+    if not phone:
+        messages.error(request, 'Сначала введите телефон для регистрации.')
+        return redirect('register')
+
+    phone_code = generate_code()
+    PhoneVerificationCode.objects.create(phone=phone, code=phone_code)
+    send_sms(phone, f'Ваш новый код подтверждения: {phone_code}')
+    messages.success(request, 'Новый код отправлен на ваш телефон.')
+    return redirect('verify_phone')
