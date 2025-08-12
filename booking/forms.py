@@ -72,13 +72,17 @@ class PropertyForm(forms.ModelForm):
             )
             print(f"Сохранено фото {i + 1}: {path}")  # Отладочный вывод
 
-class UserRegisterForm(UserCreationForm):
-    email = forms.EmailField()
-    phone_number = forms.CharField(max_length=15, required=True)  # Добавляем поле для телефона
+from django import forms
+from .models import User
 
+class UserRegisterForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email', 'phone_number', 'password1', 'password2']
+        fields = ['username', 'email', 'phone', 'password']
+        widgets = {
+            'password': forms.PasswordInput(),
+        }
+
 
 from .models import AvailabilityCalendar
 class AvailabilityCalendarForm(forms.ModelForm):

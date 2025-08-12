@@ -63,7 +63,9 @@ path('payment/return/', payment_return_view, name='payment_return'),
     path('password/code/', views.send_reset_code_view, name='send_reset_code'),
     path('password/code/verify/', views.verify_reset_code_view, name='verify_reset_code'),
     path('password/code/set/', views.set_new_password_view, name='set_new_password'),
-
-
+    path('verify_email/', views.verify_email_view, name='verify_email'),
+    path('verify_phone/', views.verify_phone_view, name='verify_phone'),
+    path('resend-email-code/', views.resend_email_code_view, name='resend_email_code'),
+    path('resend-phone-code/', views.resend_phone_code_view, name='resend_phone_code'),
 
 ]
