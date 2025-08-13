@@ -107,7 +107,10 @@ def send_telegram_notification(telegram_id, message):
 
 import hashlib
 import requests
-
+import random
+import string
+def generate_code(length=6):
+    return ''.join(random.choices(string.digits, k=length))
 def send_sms(phone, message):
     rocketsms_login = 'test'  # 998348819
     rocketsms_password = 'test'  # kpYPWJe9

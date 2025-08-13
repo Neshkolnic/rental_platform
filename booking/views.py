@@ -1194,3 +1194,36 @@ def resend_phone_code_view(request):
     send_sms(phone, f'Ваш новый код подтверждения: {phone_code}')
     messages.success(request, 'Новый код отправлен на ваш телефон.')
     return redirect('verify_phone')
+
+
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .models import PhoneVerificationCode
+from .utils import generate_code, send_sms
+
+@login_required
+def verify_phone_oauth_view(request):
+    user = request.user
+    if user.is_verified:
+        return redirect('home')  # Если телефон уже подтверждён, перенаправляем на главную страницу
+
+    if request.method == 'POST':
+        code = request.POST.get('code')
+        phone = request.session.get('oauth_phone')
+
+        verification_record = PhoneVerificationCode.objects.filter(phone=phone).order_by('-created_at').first()
+        if not verification_record:
+            messages.error(request, "Сначала отправьте код.")
+        elif verification_record.code != code:
+            messages.error(request, "Неверный код.")
+        elif verification_record.is_expired():
+            messages.error(request, "Код истёк.")
+        else:
+            user.phone = phone
+            user.is_verified = True
+            user.save()
+            messages.success(request, "Телефон подтверждён!")
+            return redirect('home')
+
+    return render(request, 'registration/verify_phone_oauth.html')

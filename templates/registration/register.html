@@ -1,6 +1,20 @@
 {% extends 'base.html' %}
 
+
+
 {% block content %}
+{% load socialaccount %}
+        <h3><a href="{% provider_login_url "google" %}">Войти через Google</a></h3>
+  <h3><a href="{% provider_login_url "yandex" %}">Войти через yandex</a></h3>
+
+
+
+
+<!-- В шаблоне HTML -->
+
+
+
+
   <h2>Регистрация</h2>
 
   {% if messages %}

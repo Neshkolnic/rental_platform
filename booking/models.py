@@ -71,22 +71,6 @@ class User(AbstractUser):
         return self.full_name or self.email
 
 
-class SocialAuth(models.Model):
-    class Provider(models.TextChoices):
-        GOOGLE = 'google', 'Google'
-        FACEBOOK = 'facebook', 'Facebook'
-        APPLE = 'apple', 'Apple'
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='social_auth')
-    provider = models.CharField(max_length=50, choices=Provider.choices)
-    provider_id = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ('provider', 'provider_id')
-
-    def __str__(self):
-        return f"{self.user.email} - {self.provider}"
 
 
 class Property(models.Model):

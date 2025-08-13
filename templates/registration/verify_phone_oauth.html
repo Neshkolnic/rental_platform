@@ -1,0 +1,15 @@
+<h2>Подтверждение номера телефона</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {% if not request.session.oauth_phone %}
+        <label>Введите номер телефона:</label>
+        <input type="text" name="phone" required>
+        <button type="submit" formaction="{% url 'send_phone_code_oauth' %}">Отправить код</button>
+    {% else %}
+        <p>Код отправлен на: {{ request.session.oauth_phone }}</p>
+        <label>Введите код:</label>
+        <input type="text" name="code" required>
+        <button type="submit">Подтвердить</button>
+    {% endif %}
+</form>

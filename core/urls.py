@@ -19,9 +19,10 @@ urlpatterns = [
     path('my-properties/', views.my_properties, name='my_properties'),
     # URL приложения booking
     path('', include('booking.urls')),
-     path('properties/create/', create_property, name='create_property'),
+    path('properties/create/', create_property, name='create_property'),
     # URL allauth (социальная авторизация)
     path('adminpanel/', include('adminpanel.urls')),
+    path('auth/', include('social_django.urls', namespace='social')),
 
     path('accounts/', include('allauth.urls')),
     path(
