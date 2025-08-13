@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>Подтвердите номер телефона</h2>
+  <form method="post">
+    {% csrf_token %}
+    <label>Введите номер телефона:</label>
+    <input type="text" name="phone" required>
+    <button type="submit">Отправить код</button>
+  </form>
+{% endblock %}

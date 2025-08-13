@@ -202,7 +202,8 @@ SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'  # Редирект после успешн
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'  # Страница ошибки, если не удалось войти
 
 
-
+# Отключаем автоматическое создание пользователя после соцвхода
+SOCIALACCOUNT_AUTO_SIGNUP = False
 
 # Social providers configuration
 SOCIALACCOUNT_PROVIDERS = {
@@ -227,6 +228,8 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Указываем свой адаптер
+SOCIALACCOUNT_ADAPTER = 'booking.adapters.MySocialAccountAdapter'
 
 
 # Email settings
