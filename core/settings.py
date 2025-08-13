@@ -50,14 +50,20 @@ INSTALLED_APPS = [
 
 
 
+
+
     # Third-party apps
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
 
+
     # Social providers
+    'social_django',
     'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.facebook',
+    'allauth.socialaccount.providers.yandex',
+    'allauth.socialaccount.providers.mailru',
+
 
     # Local apps
     'booking.apps.BookingConfig',
@@ -169,6 +175,10 @@ AUTH_USER_MODEL = 'booking.User'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
+    'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.yandex.YandexOAuth2',
+    'social_core.backends.mailru.MailruOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
 ]
 
 # Allauth settings
@@ -188,27 +198,36 @@ LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = '/accounts/login/'
 
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/'  # Редирект после успешного входа через соцсеть
+SOCIAL_AUTH_LOGIN_ERROR_URL = '/login/'  # Страница ошибки, если не удалось войти
+
+
+
+
 # Social providers configuration
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
         'AUTH_PARAMS': {'access_type': 'online'},
         'APP': {
-            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-            'secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+            'client_id':  os.getenv('GOOGLE_CLIENT_ID'),
+            'secret': os.getenv('GOOGLE_SECRET'),
             'key': ''
         }
     },
-    'facebook': {
-        'METHOD': 'oauth2',
-        'SCOPE': ['email', 'public_profile'],
+    'yandex': {
         'APP': {
-            'client_id': os.getenv('FACEBOOK_CLIENT_ID'),
-            'secret': os.getenv('FACEBOOK_CLIENT_SECRET'),
+            'client_id': os.getenv('YANDEX_CLIENT_ID'),
+            'secret': os.getenv('YANDEX_SECRET'),
             'key': ''
-        }
+        },
+        'SCOPE': ['login:email'],  # или нужный scope для email
+        'AUTH_PARAMS': {},
+        'EMAIL_REQUIRED': True,  # чтобы email был обязательным
     }
 }
+
+
 
 # Email settings
 if DEBUG:
@@ -222,6 +241,8 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+
 
 
 # Настройки Geopy
