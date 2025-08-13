@@ -1196,34 +1196,78 @@ def resend_phone_code_view(request):
     return redirect('verify_phone')
 
 
-from django.contrib.auth.decorators import login_required
+from django.utils.text import slugify
 from django.shortcuts import render, redirect
 from django.contrib import messages
+from allauth.socialaccount.models import SocialLogin
 from .models import PhoneVerificationCode
 from .utils import generate_code, send_sms
 
-@login_required
-def verify_phone_oauth_view(request):
-    user = request.user
-    if user.is_verified:
-        return redirect('home')  # Если телефон уже подтверждён, перенаправляем на главную страницу
+def phone_verification_start(request):
+    if request.method == 'POST':
+        phone = request.POST.get('phone')
+        if phone:
+            code = generate_code()
+            PhoneVerificationCode.objects.create(phone=phone, code=code)
+            send_sms(phone, f'Ваш код подтверждения: {code}')
+            request.session['phone_to_verify'] = phone
+            messages.success(request, 'Код отправлен на ваш телефон')
+            return redirect('phone_verification_confirm')
+
+    return render(request, 'registration/phone_verification_start.html')
+
+import uuid
+from django.contrib.auth import login
+def phone_verification_confirm(request):
+    phone = request.session.get('phone_to_verify')
+    if not phone:
+        messages.error(request, 'Сначала введите номер телефона')
+        return redirect('phone_verification_start')
 
     if request.method == 'POST':
         code = request.POST.get('code')
-        phone = request.session.get('oauth_phone')
+        record = PhoneVerificationCode.objects.filter(phone=phone).order_by('-created_at').first()
 
-        verification_record = PhoneVerificationCode.objects.filter(phone=phone).order_by('-created_at').first()
-        if not verification_record:
-            messages.error(request, "Сначала отправьте код.")
-        elif verification_record.code != code:
-            messages.error(request, "Неверный код.")
-        elif verification_record.is_expired():
-            messages.error(request, "Код истёк.")
+        if not record or record.code != code or record.is_expired():
+            messages.error(request, 'Неверный или истёкший код')
         else:
+            # Восстанавливаем социальный логин из сессии
+            sociallogin_data = request.session.get('socialaccount_sociallogin')
+            if not sociallogin_data:
+                messages.error(request, 'Данные соцсети не найдены. Попробуйте войти снова.')
+                return redirect('account_login')
+
+            sociallogin = SocialLogin.deserialize(sociallogin_data)
+            user = sociallogin.user
+
+            # --- Вот тут важное обновление ---
+            # Подтягиваем username из email или генерируем уникальный
+            if not user.username:
+                if user.email:
+                    user.username = slugify(user.email.split('@')[0])
+                else:
+                    user.username = str(uuid.uuid4())[:30]
+
+
+
+
             user.phone = phone
             user.is_verified = True
             user.save()
-            messages.success(request, "Телефон подтверждён!")
+
+            # Сохраняем соцлогин (создаст пользователя и войдёт)
+            sociallogin.save(request)
+
+            #оно не логинит, но в бд добавяляет, поэтому вызывал данную функцию возможно сработате, у меня просто аккаунты для тестов закончились
+            #login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+
+
+            # Чистим сессию
+            del request.session['socialaccount_sociallogin']
+            del request.session['phone_to_verify']
+
+            messages.success(request, 'Телефон подтверждён, вы успешно вошли!')
             return redirect('home')
 
-    return render(request, 'registration/verify_phone_oauth.html')
+    return render(request, 'registration/phone_verification_confirm.html', {'phone': phone})

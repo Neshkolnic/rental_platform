@@ -67,6 +67,8 @@ path('payment/return/', payment_return_view, name='payment_return'),
     path('verify_phone/', views.verify_phone_view, name='verify_phone'),
     path('resend-email-code/', views.resend_email_code_view, name='resend_email_code'),
     path('resend-phone-code/', views.resend_phone_code_view, name='resend_phone_code'),
-    path('verify-phone-oauth/', views.verify_phone_oauth_view, name='verify_phone_oauth'),
+
+    path('phone-verification/start/', views.phone_verification_start, name='phone_verification_start'),
+    path('phone-verification/confirm/', views.phone_verification_confirm, name='phone_verification_confirm'),
 
 ]
