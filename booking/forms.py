@@ -116,10 +116,10 @@ class ProfileForm(forms.ModelForm):
         help_text='Скопируйте ваш Telegram ID из бота и вставьте сюда, чтобы получать уведомления.'
     )
     # avatar_file = forms.FileField(required=False, label="Фото (аватар)")
-
+    email = forms.EmailField(required=True, label='Email')
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'avatar','telegram_id']
+        fields = ['first_name', 'last_name', 'phone', 'avatar','telegram_id', 'email']
 
 class InitialMessageForm(forms.Form):
     message = forms.CharField(
