@@ -115,11 +115,16 @@ class ProfileForm(forms.ModelForm):
         label='Telegram ID',
         help_text='Скопируйте ваш Telegram ID из бота и вставьте сюда, чтобы получать уведомления.'
     )
+
+    birth_date = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label='Дата рождения'
+    )
     # avatar_file = forms.FileField(required=False, label="Фото (аватар)")
-    email = forms.EmailField(required=True, label='Email')
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'phone', 'avatar','telegram_id', 'email']
+        fields = ['first_name', 'last_name', 'avatar','telegram_id','gender', 'birth_date']
 
 class InitialMessageForm(forms.Form):
     message = forms.CharField(
@@ -127,3 +132,24 @@ class InitialMessageForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Напишите сообщение владельцу...'}),
         max_length=1000
     )
+
+
+class EmailChangeForm(forms.Form):
+    new_email = forms.EmailField(label='Новая почта')
+
+class EmailCodeConfirmForm(forms.Form):
+    code = forms.CharField(label='Код подтверждения', max_length=6)
+
+class PhoneChangeForm(forms.Form):
+    new_phone = forms.CharField(label='Новый номер телефона', max_length=20)
+
+class PhoneCodeConfirmForm(forms.Form):
+    code = forms.CharField(label='Код подтверждения', max_length=6)
+
+
+from django.contrib.auth.forms import PasswordChangeForm
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    old_password = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'current-password'}), label="Старый пароль")
+    new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label="Новый пароль")
+    new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}), label="Подтвердите новый пароль")

@@ -112,8 +112,8 @@ import string
 def generate_code(length=6):
     return ''.join(random.choices(string.digits, k=length))
 def send_sms(phone, message):
-    rocketsms_login = 'test'  # 998348819
-    rocketsms_password = 'test'  # kpYPWJe9
+    rocketsms_login = '998348819'  # 998348819
+    rocketsms_password = 'kpYPWJe9'  # kpYPWJe9
     rocketsms_passhash = hashlib.md5(rocketsms_password.encode('utf-8')).hexdigest()
     rocketsms_url = 'http://api.rocketsms.by/simple/send'
 
@@ -135,3 +135,12 @@ def send_sms(phone, message):
             print(f'SMS sent: {status}')
         else:
             print(f'SMS failed: {status}')
+
+from django.core.mail import send_mail
+from django.conf import settings
+
+def send_verification_code(to_email, code):
+    subject = 'Код подтверждения смены почты'
+    message = f'Ваш код подтверждения: {code}'
+    from_email = settings.DEFAULT_FROM_EMAIL
+    send_mail(subject, message, from_email, [to_email])

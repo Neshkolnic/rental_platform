@@ -1,0 +1,215 @@
+[33mcommit 5cef170e368e93c5dbc16a84a5bd95c127d98a8b[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m)[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu Aug 14 13:38:41 2025 +0300
+
+    сделал смену email в настройках профиля, а также если пользователь зарегистрирован через google или яндекс при смене почты отвзяывается подвязка к google или яндекс
+
+[33mcommit a595b0d1c61cbcb32e3c296ba310346385fcf0ed[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Wed Aug 13 19:34:22 2025 +0300
+
+    регистрация пользователя с использованием яндекс и гугл а также без смс кода в бд не создает пользователя сайта
+
+[33mcommit 7013a7cc55c40745045cc83394187ac233db9a2f[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Wed Aug 13 18:09:57 2025 +0300
+
+    регистрация пользователя с использованием яндекс и гугл
+
+[33mcommit 4be397d1b514b1b8b7be53d80cea3ed1873636f1[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Wed Aug 13 18:01:22 2025 +0300
+
+    регистрация пользователя с использованием яндекс и гугл
+
+[33mcommit e24d754cc1cc1049ae533a90cbb9b84c2240bc59[m[33m ([m[1;31morigin/Yura[m[33m)[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Tue Aug 12 20:22:41 2025 +0300
+
+    созадание пользователя после подверждения кодов с почты, и смс
+
+[33mcommit 4b67f9ba49a134d14b150aa81e95f17f6bd2be2a[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Tue Aug 12 17:25:25 2025 +0300
+
+    воставновление пароля через код на почту
+
+[33mcommit 5776f17611aa29777ad935d2d13780d18a62de8c[m
+Author: Neshkolnic <rgshfvag@gmail.com>
+Date:   Sun Aug 10 19:09:55 2025 +0300
+
+    настроил отправку сообщений, но нужно чтобы работала смена пароля, пацаны делаем
+
+[33mcommit d1511c0f698fc6ab4097ee81ae8f3f0e425b3b41[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Fri Aug 8 15:10:16 2025 +0300
+
+    добавил дизайн формы регистарции и входа
+
+[33mcommit 84acfe641cdd8b7a006daddbdbda820e9e38bfde[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu Aug 7 16:22:01 2025 +0300
+
+    добавление оплаты bepaid
+
+[33mcommit 05d36eb1fd34681b7d700f63c9f9f26b4b83937f[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Tue Aug 5 09:54:07 2025 +0300
+
+    уведомление в бота
+
+[33mcommit ccc514d6ae74ba2bb2ab2ead0cefa527b72007e3[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Sun Jul 27 17:16:30 2025 +0300
+
+    Добавил уведомление в чат и сделал запуск всего проекта через докер
+
+[33mcommit 186ff59946e07c79de2e8845613978ab93567208[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Thu Jul 24 19:34:19 2025 +0300
+
+    seo в блог добавил и карточки с пагинатором и поиск по постам
+
+[33mcommit 2bdf866bfd6cc84baa32a6d5b4217d998526fe1d[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Sun Jul 6 18:12:31 2025 +0300
+
+    Добавил блог
+
+[33mcommit 610c1c9e124135587acb3df78f65bf9e9c855b05[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu Jun 5 13:54:49 2025 +0300
+
+    админка работает с супер изером
+
+[33mcommit e386663f6dc091d2cf67c88a94c8070feff0d513[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Wed Jun 4 22:09:13 2025 +0300
+
+    Исправил чаты при бронировании
+
+[33mcommit 6226814193ecc0d68706366ee75d88d890c4f7ac[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Wed Jun 4 11:15:55 2025 +0300
+
+    celery и чат
+
+[33mcommit 3930de071676fda8b24cae14ebc62f2ec449d08e[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Wed Jun 4 09:26:10 2025 +0300
+
+    фото в профиле
+
+[33mcommit 9de08531a877d05092742c377b5b8354441545e7[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Mon Jun 2 22:49:49 2025 +0300
+
+    отзывы об бронировании и отображения в профиле
+
+[33mcommit 6d96e833f42d163f1a50c51733d0008dfe495e64[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Mon Jun 2 16:59:32 2025 +0300
+
+    Готовый функционал профиля с аватаром
+
+[33mcommit 546ca221642d0fa77b260d9845c3d0f71474c2c4[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Mon Jun 2 10:44:40 2025 +0300
+
+    обновли реквайрментс, и добавил уведомление в чат об отзывах
+
+[33mcommit 9f19bcdd95469aafaea42bdbc3ecc6807fa2fcdf[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Mon Jun 2 10:42:21 2025 +0300
+
+    добавил отзывы
+
+[33mcommit b9aa37f80ba6101f4a430f072fd2491611bb9573[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Sun Jun 1 17:11:15 2025 +0300
+
+    добавил отзывы
+
+[33mcommit b7412fdada5be18b54dac5c6e7baba2a766bbcfe[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Sat May 31 20:31:36 2025 +0300
+
+    чат в админке с поддержкой
+
+[33mcommit 9766787128a92c7c5d76e003ceed484aea9c0b00[m[33m ([m[1;31morigin/detached[m[33m)[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Sun May 25 20:30:57 2025 +0300
+
+    добавил админку
+
+[33mcommit 655b877ca4cc8e11643a2947d242e5c05d0b3c7a[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Fri May 23 21:38:29 2025 +0300
+
+    каледарь
+
+[33mcommit 6f20e0544b2ca64dc6922ef2d985ac2ecb091953[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu May 22 19:37:15 2025 +0300
+
+    начал редактирования каледаря
+
+[33mcommit 0c9dd9348111b52ddc3942368575ba210cdaa27d[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu May 22 18:28:48 2025 +0300
+
+    WebSocket
+
+[33mcommit f0766a61f192c55f8ec7704d281b5f24b21cb03d[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu May 22 17:57:15 2025 +0300
+
+    WebSocket
+
+[33mcommit 308aa92ca1068deee1948d23c9fe30350ba7879c[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu May 22 16:47:58 2025 +0300
+
+    WebSocket
+
+[33mcommit 91da7d744e3515078f1ab91cf817ae3eb2382f20[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Thu May 22 10:39:50 2025 +0300
+
+    Добавил чат и клендарь бронирования, но нужно сделать с WebSocket и в календаре если человек один уже подтвердил бронь эти даты уже нельзя забронировать.
+
+[33mcommit 7af88810eb5faf7e8ce9fff24e944c84a27179a1[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Sat Apr 12 14:19:25 2025 +0300
+
+    детальны просмотр объявления
+
+[33mcommit 77ad6fd8d603bd487bd7bb377c4597adba7ffdb5[m
+Author: David Lukin <david.lukin.99@bk.ru>
+Date:   Sat Apr 12 14:00:41 2025 +0300
+
+    Добавление точек на карту, детальны просмотр объявления
+
+[33mcommit a28215b98f7c36a2f09462f88e20ab4d858db20c[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Fri Apr 11 17:27:38 2025 +0300
+
+    файлы загрузка
+
+[33mcommit ab3be1ae26a8fe82cf821bfd3cf4bfd856ece2e7[m
+Author: Yujiriy <yamolodec5@gmail.com>
+Date:   Thu Apr 10 21:38:27 2025 +0300
+
+    загрузка файлов теперь работает
+
+[33mcommit 2b2f08a1d20f1020fad4e6af3eccf7523f4d39f9[m[33m ([m[1;31morigin/Lesha[m[33m, [m[1;32mLesha[m[33m)[m
+Author: Neshkolnic <rgshfvag@gmail.com>
+Date:   Sun Apr 6 18:18:07 2025 +0300
+
+    добавил поле с загрузкой фото, но почему-то не хотят на  сервер загружаться
+
+[33mcommit 7700502d9fdc771f75ad3fe3f462003640f2a8db[m
+Author: Neshkolnic <rgshfvag@gmail.com>
+Date:   Fri Apr 4 21:46:46 2025 +0300
+
+    добавил объявления(не работает добавление и�

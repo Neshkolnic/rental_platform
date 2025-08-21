@@ -1124,6 +1124,7 @@ def verify_phone_view(request):
     if request.method == 'POST':
         code = request.POST.get('code')
 
+
         if verification_record.code != code:
             messages.error(request, 'Неверный код. Попробуйте снова.')
         elif verification_record.is_expired():
@@ -1139,7 +1140,9 @@ def verify_phone_view(request):
                 phone = request.session.get('register_phone')
                 password = request.session.get('register_password')
 
-                user = User.objects.create_user(username=email, email=email, password=password)
+                temp_username = str(uuid.uuid4())[:30]
+
+                user = User.objects.create_user(username=temp_username, email=email, password=password)
                 # Если есть поле phone в User, то записать туда
                 # user.phone = phone
                 # user.save()
@@ -1240,15 +1243,7 @@ def phone_verification_confirm(request):
             sociallogin = SocialLogin.deserialize(sociallogin_data)
             user = sociallogin.user
 
-            # --- Вот тут важное обновление ---
-            # Подтягиваем username из email или генерируем уникальный
-            if not user.username:
-                if user.email:
-                    user.username = slugify(user.email.split('@')[0])
-                else:
-                    user.username = str(uuid.uuid4())[:30]
-
-
+            user.username = str(uuid.uuid4())
 
 
             user.phone = phone
@@ -1271,3 +1266,143 @@ def phone_verification_confirm(request):
             return redirect('home')
 
     return render(request, 'registration/phone_verification_confirm.html', {'phone': phone})
+
+
+
+from .forms import EmailChangeForm, EmailCodeConfirmForm
+from .models import EmailChangeCode
+from .utils import send_verification_code
+from django.contrib import messages
+
+@login_required
+def change_email_request(request):
+    if request.method == 'POST':
+        form = EmailChangeForm(request.POST)
+        if form.is_valid():
+            new_email = form.cleaned_data['new_email']
+            code = generate_code()
+
+            # Сохраняем код
+            EmailChangeCode.objects.filter(user=request.user).delete()
+            EmailChangeCode.objects.create(user=request.user, new_email=new_email, code=code)
+
+            # Отправляем код на почту
+
+            send_verification_code(new_email, code)
+
+            messages.info(request, 'Код подтверждения отправлен на новую почту.')
+            return redirect('confirm_email_code')
+    else:
+        form = EmailChangeForm()
+
+    return render(request, 'profile/change_email.html', {'form': form})
+
+@login_required
+def confirm_email_code(request):
+    if request.method == 'POST':
+        form = EmailCodeConfirmForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data['code']
+            try:
+                email_change = EmailChangeCode.objects.get(user=request.user, code=code)
+                if email_change.is_expired():
+                    email_change.delete()
+                    messages.error(request, 'Код истёк.')
+                    return redirect('change_email_request')
+
+                # Обновляем email
+                request.user.email = email_change.new_email
+                request.user.save()
+                email_change.delete()
+
+                messages.success(request, 'Почта успешно обновлена.')
+                return redirect('profile_view')
+
+            except EmailChangeCode.DoesNotExist:
+                messages.error(request, 'Неверный код.')
+    else:
+        form = EmailCodeConfirmForm()
+
+    return render(request, 'profile/confirm_email.html', {'form': form})
+
+
+
+from .models import PhoneChangeCode
+from .forms import PhoneChangeForm, PhoneCodeConfirmForm
+from django.contrib import messages
+
+@login_required
+def change_phone_request(request):
+    if request.method == 'POST':
+        form = PhoneChangeForm(request.POST)
+        if form.is_valid():
+            new_phone = form.cleaned_data['new_phone']
+            code = generate_code()
+
+            # Удаляем старые коды
+            PhoneChangeCode.objects.filter(user=request.user).delete()
+            # Создаём новый
+            PhoneChangeCode.objects.create(user=request.user, new_phone=new_phone, code=code)
+
+            # Отправляем SMS на текущий телефон (или на новый — реши сам; по ТЗ отправляем на текущий)
+            message = f'Ваш код подтверждения смены номера: {code}'
+            send_sms(new_phone, message)
+
+
+            messages.info(request, 'Код подтверждения отправлен на новый  номер телефона.')
+            return redirect('confirm_phone_code')
+    else:
+        form = PhoneChangeForm()
+
+    return render(request, 'profile/change_phone.html', {'form': form})
+
+@login_required
+def confirm_phone_code(request):
+    if request.method == 'POST':
+        form = PhoneCodeConfirmForm(request.POST)
+        if form.is_valid():
+            code = form.cleaned_data['code']
+            try:
+                phone_change = PhoneChangeCode.objects.get(user=request.user, code=code)
+                if phone_change.is_expired():
+                    phone_change.delete()
+                    messages.error(request, 'Код истёк.')
+                    return redirect('change_phone_request')
+
+                # Обновляем номер телефона
+                request.user.phone = phone_change.new_phone
+                request.user.save()
+                phone_change.delete()
+
+                messages.success(request, 'Номер телефона успешно обновлён.')
+                return redirect('profile_view')
+
+            except PhoneChangeCode.DoesNotExist:
+                messages.error(request, 'Неверный код.')
+    else:
+        form = PhoneCodeConfirmForm()
+
+    return render(request, 'profile/confirm_phone.html', {'form': form})
+
+
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
+from django.contrib import messages
+from .forms import CustomPasswordChangeForm
+
+
+@login_required
+def change_password_view(request):
+    if request.method == 'POST':
+        form = CustomPasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Чтобы не выбрасывало из сессии
+            messages.success(request, 'Пароль успешно изменён.')
+            return redirect('profile_view')
+        else:
+            messages.error(request, 'Пожалуйста, исправьте ошибки ниже.')
+    else:
+        form = CustomPasswordChangeForm(user=request.user)
+
+    return render(request, 'profile/change_password.html', {'form': form})

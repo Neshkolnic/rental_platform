@@ -1,0 +1,85 @@
+[33m3c258c6[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m, [m[1;31morigin/Yura[m[33m)[m HEAD@{0}: reset: moving to HEAD
+[33m3c258c6[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m, [m[1;31morigin/Yura[m[33m)[m HEAD@{1}: reset: moving to HEAD
+[33m3c258c6[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m, [m[1;31morigin/Yura[m[33m)[m HEAD@{2}: reset: moving to HEAD
+[33m3c258c6[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m, [m[1;31morigin/Yura[m[33m)[m HEAD@{3}: rebase (finish): returning to refs/heads/Yura
+[33m3c258c6[m[33m ([m[1;36mHEAD -> [m[1;32mYura[m[33m, [m[1;31morigin/Yura[m[33m)[m HEAD@{4}: rebase (pick): сделал смену email в настройках профиля, а также если пользователь зарегистрирован через google или яндекс при смене почты отвзяывается подвязка к google или яндекс
+[33m2230d1b[m HEAD@{5}: rebase (continue): регистрация пользователя с использованием яндекс и гугл а также без смс кода в бд не создает пользователя сайта
+[33mc006a73[m HEAD@{6}: rebase (continue): регистрация пользователя с использованием яндекс и гугл
+[33me24d754[m HEAD@{7}: rebase (start): checkout e24d754cc1cc1049ae533a90cbb9b84c2240bc59
+[33m5cef170[m HEAD@{8}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{9}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{10}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{11}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{12}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{13}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{14}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{15}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{16}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{17}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{18}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{19}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{20}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{21}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{22}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{23}: rebase (abort): returning to refs/heads/Yura
+[33m5cef170[m HEAD@{24}: reset: moving to HEAD
+[33m5cef170[m HEAD@{25}: commit: сделал смену email в настройках профиля, а также если пользователь зарегистрирован через google или яндекс при смене почты отвзяывается подвязка к google или яндекс
+[33ma595b0d[m HEAD@{26}: commit: регистрация пользователя с использованием яндекс и гугл а также без смс кода в бд не создает пользователя сайта
+[33m7013a7c[m HEAD@{27}: commit: регистрация пользователя с использованием яндекс и гугл
+[33m4be397d[m HEAD@{28}: commit: регистрация пользователя с использованием яндекс и гугл
+[33me24d754[m HEAD@{29}: commit: созадание пользователя после подверждения кодов с почты, и смс
+[33m4b67f9b[m HEAD@{30}: commit: воставновление пароля через код на почту
+[33m5776f17[m HEAD@{31}: pull: Fast-forward
+[33md1511c0[m HEAD@{32}: pull: Fast-forward
+[33m84acfe6[m HEAD@{33}: commit: добавление оплаты bepaid
+[33m05d36eb[m HEAD@{34}: commit: уведомление в бота
+[33mccc514d[m HEAD@{35}: reset: moving to HEAD
+[33mccc514d[m HEAD@{36}: reset: moving to HEAD
+[33mccc514d[m HEAD@{37}: reset: moving to HEAD
+[33mccc514d[m HEAD@{38}: reset: moving to HEAD
+[33mccc514d[m HEAD@{39}: pull: Fast-forward
+[33m610c1c9[m HEAD@{40}: reset: moving to HEAD
+[33m610c1c9[m HEAD@{41}: reset: moving to HEAD
+[33m610c1c9[m HEAD@{42}: commit: админка работает с супер изером
+[33me386663[m HEAD@{43}: pull: Fast-forward
+[33m6226814[m HEAD@{44}: commit: celery и чат
+[33m3930de0[m HEAD@{45}: commit: фото в профиле
+[33m9de0853[m HEAD@{46}: commit: отзывы об бронировании и отображения в профиле
+[33m6d96e83[m HEAD@{47}: pull: Fast-forward
+[33m546ca22[m HEAD@{48}: commit: обновли реквайрментс, и добавил уведомление в чат об отзывах
+[33m9f19bcd[m HEAD@{49}: commit: добавил отзывы
+[33mb9aa37f[m HEAD@{50}: commit: добавил отзывы
+[33mb7412fd[m HEAD@{51}: commit: чат в админке с поддержкой
+[33m9766787[m[33m ([m[1;31morigin/detached[m[33m)[m HEAD@{52}: commit: добавил админку
+[33m655b877[m HEAD@{53}: commit: каледарь
+[33m6f20e05[m HEAD@{54}: commit: начал редактирования каледаря
+[33m0c9dd93[m HEAD@{55}: commit: WebSocket
+[33mf0766a6[m HEAD@{56}: commit: WebSocket
+[33m308aa92[m HEAD@{57}: commit: WebSocket
+[33m91da7d7[m HEAD@{58}: checkout: moving from Lesha to Yura
+[33m2b2f08a[m[33m ([m[1;31morigin/Lesha[m[33m, [m[1;32mLesha[m[33m)[m HEAD@{59}: checkout: moving from Yura to Lesha
+[33m91da7d7[m HEAD@{60}: commit: Добавил чат и клендарь бронирования, но нужно сделать с WebSocket и в календаре если человек один уже подтвердил бронь эти даты уже нельзя забронировать.
+[33m7af8881[m HEAD@{61}: commit: детальны просмотр объявления
+[33m77ad6fd[m HEAD@{62}: commit: Добавление точек на карту, детальны просмотр объявления
+[33ma28215b[m HEAD@{63}: pull origin Yura: Fast-forward
+[33mc7c1aca[m HEAD@{64}: reset: moving to HEAD~2
+[33m5473749[m HEAD@{65}: reset: moving to HEAD~2
+[33m2b2f08a[m[33m ([m[1;31morigin/Lesha[m[33m, [m[1;32mLesha[m[33m)[m HEAD@{66}: reset: moving to HEAD~2
+[33ma28215b[m HEAD@{67}: pull origin Yura: Fast-forward
+[33mab3be1a[m HEAD@{68}: checkout: moving from Yura to Yura
+[33mab3be1a[m HEAD@{69}: reset: moving to HEAD~1
+[33ma28215b[m HEAD@{70}: checkout: moving from Lesha to Yura
+[33m2b2f08a[m[33m ([m[1;31morigin/Lesha[m[33m, [m[1;32mLesha[m[33m)[m HEAD@{71}: pull: Fast-forward
+[33m7ffb2bd[m HEAD@{72}: reset: moving to HEAD~3
+[33m2b2f08a[m[33m ([m[1;31morigin/Lesha[m[33m, [m[1;32mLesha[m[33m)[m HEAD@{73}: pull: Fast-forward
+[33mc7c1aca[m HEAD@{74}: reset: moving to HEAD~3
+[33m7700502[m HEAD@{75}: pull: Fast-forward
+[33m7ffb2bd[m HEAD@{76}: checkout: moving from Lesha to Lesha
+[33m7ffb2bd[m HEAD@{77}: commit: Обновли регистрацию
+[33mc7c1aca[m HEAD@{78}: checkout: moving from master to Lesha
+[33md2ad6da[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{79}: commit: Добавил переменные окружения
+[33mffdf073[m HEAD@{80}: commit: Добавил таблички в админку
+[33m2bc01fe[m HEAD@{81}: pull origin master: Fast-forward
+[33m3903bbe[m HEAD@{82}: checkout: moving from master to master
+[33m3903bbe[m HEAD@{83}: pull --all: Fast-forward
+[33ma0bd16c[m HEAD@{84}: clone: from https://github.com/Neshkolnic/rental_platform.git

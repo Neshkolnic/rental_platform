@@ -27,7 +27,7 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
-    path('profile/', views.profile_view, name='profile'),
+    path('profile/', views.profile_view, name='profile_view'),
     path('avatar/<int:user_id>/', views.avatar_view, name='avatar_view'),
 
     path('geocode/', views.geocode_view, name='geocode'),
@@ -70,5 +70,10 @@ path('payment/return/', payment_return_view, name='payment_return'),
 
     path('phone-verification/start/', views.phone_verification_start, name='phone_verification_start'),
     path('phone-verification/confirm/', views.phone_verification_confirm, name='phone_verification_confirm'),
+    path('profile/change-email/', views.change_email_request, name='change_email_request'),
+    path('profile/confirm-email/', views.confirm_email_code, name='confirm_email_code'),
+    path('profile/change-phone/', views.change_phone_request, name='change_phone_request'),
+    path('profile/confirm-phone/', views.confirm_phone_code, name='confirm_phone_code'),
+    path('profile/change-password/', views.change_password_view, name='change_password'),
 
 ]

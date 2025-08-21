@@ -21,10 +21,15 @@ class User(AbstractUser):
         ADMIN = 'admin', 'Admin'
         BLOG_EDITOR = 'blog_editor', 'Blog Editor'
 
+    class Gender(models.TextChoices):
+        NOT_SELECTED = '', 'Не выбран'
+        MALE = 'male', 'Мужской'
+        FEMALE = 'female', 'Женский'
+
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name = models.CharField(max_length=100, blank=True, null=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     role = models.CharField(max_length=50, choices=Role.choices, default=Role.USER)
     password = models.CharField(max_length=128, blank=True)
@@ -32,6 +37,9 @@ class User(AbstractUser):
     is_moderator = models.BooleanField(default=False)
     is_support = models.BooleanField(default=False)
     telegram_id = models.CharField(max_length=50, blank=True, null=True)
+
+    gender = models.CharField(max_length=10, choices=Gender.choices, default=Gender.NOT_SELECTED, blank=True)
+    birth_date = models.DateField(blank=True, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -431,3 +439,31 @@ class PhoneVerificationCode(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timezone.timedelta(minutes=10)
+
+
+
+
+class EmailChangeCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    new_email = models.EmailField()
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    def __str__(self):
+        return f"Code for {self.user.username} -> {self.new_email}"
+
+
+class PhoneChangeCode(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    new_phone = models.CharField(max_length=20)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)
+
+    def __str__(self):
+        return f"Phone change code for {self.user.username} -> {self.new_phone}"
